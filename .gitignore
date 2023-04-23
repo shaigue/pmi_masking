@@ -1,6 +1,7 @@
 # data files
 *.parquet
 *.duckdb
+*.duckdb.wal
 *.json
 
 # pycharm
