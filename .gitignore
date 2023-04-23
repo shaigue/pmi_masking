@@ -1,3 +1,8 @@
+# data files
+*.parquet
+*.duckdb
+*.json
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
