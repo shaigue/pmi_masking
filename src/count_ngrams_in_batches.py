@@ -3,7 +3,7 @@ import json
 import os
 import sys
 from collections import Counter
-from logging import Logger
+import logging
 from pathlib import Path
 from typing import Any
 
@@ -13,12 +13,15 @@ from transformers import PreTrainedTokenizerBase
 import pyarrow as pa
 import pyarrow.parquet as pq
 
-from src.get_module_logger import get_module_logger
+from src.get_tokenizer import get_tokenizer
+from src.load_dataset import load_bookcorpus_dataset
 
 MEGA = 2 ** 20
+logging.basicConfig(level=logging.INFO, format='%(asctime)s %(message)s')
 
 
 # TODO: update/write docstring
+# TODO: figure how do I want to do logging
 
 
 def __count_ngrams_in_batch(batch: list[list[int]], max_ngram_size: int) -> \
@@ -63,36 +66,28 @@ def __tokenize_dataset(dataset: HuggingfaceDataset, tokenizer: PreTrainedTokeniz
     return dataset
 
 
-def __count_total_ngrams_per_size_and_save_to_file(dataset: HuggingfaceDataset, max_ngram_size: int,
-                                                   n_workers: int, save_dir: Path) -> None:
-    ngram_of_size_file = save_dir / 'total_ngrams_per_size.json'
+def __count_total_ngrams_of_size(dataset: HuggingfaceDataset, max_ngram_size: int) \
+        -> dict[int, int]:
+    input_ids = dataset.data.column('input_ids')
+    sequence_lengths = pa.compute.list_value_length(input_ids)
 
-    def count_tokens_in_sample(sample: dict[str, Any]) -> dict[str, Any]:
-        return {'n_tokens': len(sample['input_ids'])}
+    total_ngrams_of_size = {}
+    for ngram_size in range(1, max_ngram_size + 1):
+        subtract_constant = ngram_size - 1
+        total_ngrams_of_size_per_sample = pa.compute.subtract(sequence_lengths, subtract_constant)
+        total_ngrams_of_size_per_sample = pa.compute.max_element_wise(total_ngrams_of_size_per_sample, 0)
+        total_ngrams_of_size[ngram_size] = pa.compute.sum(total_ngrams_of_size_per_sample).as_py()
 
-    dataset = dataset.map(
-        count_tokens_in_sample,
-        num_proc=n_workers
-    )
-    n_examples = len(dataset)
-    # TODO: this is not correct if there is a sample with the number of tokens lower than `max_ngram_size`
-    n_tokens = sum(dataset['n_tokens'])
-    total_ngrams_per_size = {
-        ngram_size: n_tokens - n_examples * (ngram_size - 1)
-        for ngram_size in range(1, max_ngram_size + 1)
-    }
-    with ngram_of_size_file.open('w') as f:
-        json.dump(total_ngrams_per_size, f, indent=4)
+    return total_ngrams_of_size
 
 
-def __count_ngrams_in_batches_and_save_to_file(dataset: HuggingfaceDataset, logger: Logger,
-                                               n_workers: int, ngram_count_batch_size: int,
-                                               max_ngram_size: int, filter_ngram_count_threshold: int,
-                                               save_dir: Path) -> None:
+def __count_ngrams_in_batches_and_save_to_file(dataset: HuggingfaceDataset, n_workers: int,
+                                               ngram_count_batch_size: int, max_ngram_size: int,
+                                               filter_ngram_count_threshold: int, save_dir: Path) -> None:
     def count_ngrams_in_batch_and_save_to_file(batch: dict[str, list], indices: list[int]) -> None:
         start, end = indices[0], indices[-1]
-        logger.info(f'started working on samples {start}-{end};'
-                    f'memory: {__get_memory_stats_mb()}')
+        logging.info(f'started working on samples {start}-{end};'
+                     f'memory: {__get_memory_stats_mb()}')
         ngram_size_to_counter = __count_ngrams_in_batch(
             batch['input_ids'],
             max_ngram_size,
@@ -117,9 +112,9 @@ def __count_ngrams_in_batches_and_save_to_file(dataset: HuggingfaceDataset, logg
             path = save_dir_per_size / f'count_table_{start}-{end}.parquet'
             pq.write_table(table, str(path))
 
-        logger.info(f'finished samples {start} to {end};'
-                    f'memory: {__get_memory_stats_mb()};'
-                    f'counter size: {sys.getsizeof(ngram_size_to_counter) // MEGA}')
+        logging.info(f'finished samples {start} to {end};'
+                     f'memory: {__get_memory_stats_mb()};'
+                     f'counter size: {sys.getsizeof(ngram_size_to_counter) // MEGA}')
 
     dataset.map(
         count_ngrams_in_batch_and_save_to_file,
@@ -135,21 +130,40 @@ def count_ngrams_in_batches(dataset: HuggingfaceDataset, tokenizer: PreTrainedTo
                             ngram_count_batch_size: int = 200_000, n_samples: int = None,
                             n_workers: int = None, max_ngram_size: int = 5,
                             filter_ngram_count_threshold: int = 0) -> None:
-    logger = get_module_logger(__file__)
-    # TODO: maybe add to logging the name of the dataset?
-    logger.info('Starting to count ngrams in batches')
-
+    # TODO: maybe add logging on the name of the dataset? or somewhere else?
+    logging.info('Starting to count ngrams in batches')
     save_dir.mkdir(parents=True, exist_ok=True)
     if n_workers is None:
         n_workers = os.cpu_count()
-
     if n_samples is not None:
         dataset = dataset.select(range(n_samples))
 
     dataset = __tokenize_dataset(dataset, tokenizer, n_workers, tokenizer_batch_size)
 
-    __count_total_ngrams_per_size_and_save_to_file(dataset, max_ngram_size, n_workers, save_dir)
+    ngram_of_size_file = save_dir / 'total_ngrams_per_size.json'
+    total_ngrams_per_size = __count_total_ngrams_of_size(dataset, max_ngram_size, n_workers)
+    with ngram_of_size_file.open('w') as f:
+        json.dump(total_ngrams_per_size, f, indent=4)
 
-    __count_ngrams_in_batches_and_save_to_file(dataset, logger, n_workers, ngram_count_batch_size,
+    __count_ngrams_in_batches_and_save_to_file(dataset, n_workers, ngram_count_batch_size,
                                                max_ngram_size, filter_ngram_count_threshold, save_dir)
-    logger.info('Finished counting ngrams in batches')
+    logging.info('Finished counting ngrams in batches')
+
+
+if __name__ == '__main__':
+    # TODO: write an end-to-end test that checks that everything works right.
+    #   this can be done after the module for integrating the file with DuckDB is enabled.
+    dataset = load_bookcorpus_dataset()
+    tokenizer = get_tokenizer()
+    save_dir = Path('../data')
+
+    count_ngrams_in_batches(
+        dataset=dataset,
+        tokenizer=tokenizer,
+        save_dir=save_dir,
+        ngram_count_batch_size=100_000,
+        n_samples=1_000_000,
+        n_workers=2,
+        max_ngram_size=5,
+        filter_ngram_count_threshold=0,
+    )

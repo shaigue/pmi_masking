@@ -3,7 +3,8 @@ from datetime import datetime
 from pathlib import Path
 
 # TODO: make sure that the log directory stays the same no matter how this module is called
-LOG_DIRECTORY = Path.cwd().parents[1] / 'logs'
+LOG_DIRECTORY = Path.cwd().parents[0] / 'logs'
+LOG_DIRECTORY.mkdir(parents=True, exist_ok=True)
 
 
 def get_module_logger(module_file: str) -> logging.Logger:
