@@ -4,6 +4,7 @@ import os
 import sys
 from collections import Counter
 import logging
+from datetime import datetime
 from pathlib import Path
 
 import psutil
@@ -16,8 +17,13 @@ from src.get_tokenizer import get_tokenizer
 from src.load_dataset import load_bookcorpus_dataset
 
 MEGA = 2 ** 20
-logging.basicConfig(level=logging.INFO, format='%(asctime)s %(message)s',
-                    filename='../logs/count_ngram_in_batches.log', filemode='a')
+date_str = datetime.now().strftime('%d-%m-%y')  # can do with hour (%H) and minute (%M)
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s %(message)s',
+    filename=f'../logs/count_ngram_in_batches_{date_str}.log',
+    filemode='a'
+)
 
 
 # TODO: write docstring
@@ -160,7 +166,8 @@ def count_ngrams_in_batches(dataset: HuggingfaceDataset, tokenizer: PreTrainedTo
                             save_dir: Path, tokenizer_batch_size: int = 4_000,
                             ngram_count_batch_size: int = 200_000, n_samples: int = None,
                             n_workers: int = None, max_ngram_size: int = 5,
-                            filter_ngram_count_threshold: int = 1) -> None:
+                            filter_ngram_count_threshold: int = 1,
+                            count_individual_ngrams: bool = True) -> None:
     """Main function for this module. gets a dataset, tokenizes it, counts how many times each ngram appears in the
     dataset and the total number of ngrams of each size are in the dataset, and saves those to files.
     :param dataset: dataset to process. assume it contains text in the 'text' column
@@ -174,6 +181,8 @@ def count_ngrams_in_batches(dataset: HuggingfaceDataset, tokenizer: PreTrainedTo
     :param max_ngram_size: maximal size of ngrams to count
     :param filter_ngram_count_threshold: only ngrams with counts (per batch) greater or equal to this threshold will be
         saved.
+    :param count_individual_ngrams: when True, counts individual ngrams. Otherwise, only counts total number
+        of ngrams per size.
     """
     logging.info('Starting to count ngrams in batches')
     save_dir.mkdir(parents=True, exist_ok=True)
@@ -189,8 +198,10 @@ def count_ngrams_in_batches(dataset: HuggingfaceDataset, tokenizer: PreTrainedTo
     with ngram_of_size_file.open('w') as f:
         json.dump(total_ngrams_per_size, f, indent=4)
 
-    count_ngrams_in_batches_and_save_to_file(dataset, n_workers, ngram_count_batch_size,
-                                             max_ngram_size, filter_ngram_count_threshold, save_dir)
+    if count_individual_ngrams:
+        count_ngrams_in_batches_and_save_to_file(dataset, n_workers, ngram_count_batch_size,
+                                                 max_ngram_size, filter_ngram_count_threshold, save_dir)
+
     logging.info('Finished counting ngrams in batches')
 
 
@@ -208,4 +219,6 @@ if __name__ == '__main__':
         n_workers=3,
         max_ngram_size=5,
         filter_ngram_count_threshold=2,
+        # since I accidentally deleted those counts:
+        # count_individual_ngrams=False,
     )
