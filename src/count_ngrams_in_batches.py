@@ -26,11 +26,9 @@ logging.basicConfig(
 )
 
 
-# TODO: write docstring
 # TODO: write an end-to-end test that checks that everything works right.
 #   this can be done after the module for integrating the file with DuckDB is done.
 # TODO: create a main script that runs this together with the other parts.
-# TODO: analyze the results, and try to interpolate to the entire dataset
 # TODO: add checkpoints? so we can resume if we where interrupted?
 # TODO: figure how do I want to do logging. maybe log details about the dataset? or something else?
 # TODO: maybe automatically delete the files when re-starting?
