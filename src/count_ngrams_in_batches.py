@@ -22,7 +22,7 @@ logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s %(message)s',
     filename=f'../logs/count_ngram_in_batches_{date_str}.log',
-    filemode='a'
+    filemode='w'
 )
 
 
