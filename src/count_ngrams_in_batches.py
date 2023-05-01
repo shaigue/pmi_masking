@@ -15,15 +15,10 @@ import pyarrow.parquet as pq
 
 from src.get_tokenizer import get_tokenizer
 from src.load_dataset import load_bookcorpus_dataset
+from src.utils import get_token_field_names, get_default_logging_config
 
 MEGA = 2 ** 20
-date_str = datetime.now().strftime('%d-%m-%y')  # can do with hour (%H) and minute (%M)
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s %(message)s',
-    filename=f'../logs/count_ngram_in_batches_{date_str}.log',
-    filemode='w'
-)
+logging.basicConfig(**get_default_logging_config(__file__))
 
 
 # TODO: write an end-to-end test that checks that everything works right.
@@ -105,10 +100,10 @@ def convert_ngram_counter_to_pa_table(counter: Counter[tuple[int, ...], int], ng
     :param counter: a mapping between an ngram to its count
     :param ngram_size: the size of the ngrams in this counter
     :param filter_ngram_count_threshold: only keep ngrams that have counts greater or equal to this threshold
-    :returns: a pyarrow table with columns 'token_1', 'token_2', ... (depending on `ngram_size`) and 'count'.
+    :returns: a pyarrow table with columns 'token_0', 'token_1', ... (depending on `ngram_size`) and 'count'.
     """
     token_columns = [[] for _ in range(ngram_size)]
-    token_columns_names = [f'token_{i}' for i in range(1, ngram_size + 1)]
+    token_fields_names = get_token_field_names(ngram_size)
     count_column = []
     for ngram, count in counter.items():
         if count < filter_ngram_count_threshold:
@@ -118,7 +113,7 @@ def convert_ngram_counter_to_pa_table(counter: Counter[tuple[int, ...], int], ng
         count_column.append(count)
     table = pa.table(
         [*token_columns, count_column],
-        names=[*token_columns_names, 'count']
+        names=[*token_fields_names, 'count']
     )
     return table
 
