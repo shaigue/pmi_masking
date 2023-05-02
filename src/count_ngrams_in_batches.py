@@ -11,7 +11,7 @@ from transformers import PreTrainedTokenizerBase
 import pyarrow as pa
 import pyarrow.parquet as pq
 
-from src.utils import get_token_field_names, get_module_logger
+from src.utils import get_token_field_names, get_module_logger, get_total_ngrams_per_size_file
 
 MEGA = 2 ** 20
 logger = get_module_logger(__name__)
@@ -176,7 +176,7 @@ def count_ngrams_in_batches(dataset: HuggingfaceDataset, tokenizer: PreTrainedTo
 
     dataset = tokenize_dataset(dataset, tokenizer, n_workers, tokenizer_batch_size)
 
-    ngram_of_size_file = save_dir / 'total_ngrams_per_size.json'
+    ngram_of_size_file = get_total_ngrams_per_size_file(save_dir)
     total_ngrams_per_size = count_total_ngrams_of_size(dataset, max_ngram_size)
     with ngram_of_size_file.open('w') as f:
         json.dump(total_ngrams_per_size, f, indent=4)

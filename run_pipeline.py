@@ -1,11 +1,12 @@
 import shutil
 from pathlib import Path
 
+from src.add_log_likelihood_column import add_log_likelihood_column
 from src.aggregate_batch_ngram_counts import aggregate_batch_ngram_counts
 from src.count_ngrams_in_batches import count_ngrams_in_batches
 from src.get_tokenizer import get_tokenizer
 from src.load_dataset import load_bookcorpus_dataset
-
+from src.utils import read_total_ngrams_per_size
 
 if __name__ == '__main__':
     n_samples = 30_000_000
@@ -35,3 +36,6 @@ if __name__ == '__main__':
 
     database_file = save_dir / 'ngram_data.duckdb'
     aggregate_batch_ngram_counts(save_dir, max_ngram_size, database_file)
+
+    total_ngrams_per_size = read_total_ngrams_per_size(save_dir)
+    add_log_likelihood_column(database_file, total_ngrams_per_size)

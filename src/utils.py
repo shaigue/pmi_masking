@@ -1,5 +1,6 @@
 # TODO: move here functions that are used in multiple modules. I don't want
 #   the different modules to be inter-dependent
+import json
 import logging
 from pathlib import Path
 
@@ -55,3 +56,14 @@ def get_token_field_names(ngram_size: int) -> list[str]:
 
 def get_key_str(ngram_size: int) -> str:
     return ', '.join(get_token_field_name(token_i) for token_i in range(ngram_size))
+
+
+def get_total_ngrams_per_size_file(save_dir):
+    return save_dir / 'total_ngrams_per_size.json'
+
+
+def read_total_ngrams_per_size(save_dir: Path) -> dict[int, int]:
+    json_file = get_total_ngrams_per_size_file(save_dir)
+    with json_file.open('r') as f:
+        total_ngrams_per_size = json.load(f)
+    return total_ngrams_per_size
