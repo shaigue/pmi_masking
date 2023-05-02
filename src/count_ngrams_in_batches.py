@@ -11,8 +11,6 @@ from transformers import PreTrainedTokenizerBase
 import pyarrow as pa
 import pyarrow.parquet as pq
 
-from src.get_tokenizer import get_tokenizer
-from src.load_dataset import load_bookcorpus_dataset
 from src.utils import get_token_field_names, get_module_logger
 
 MEGA = 2 ** 20
@@ -188,23 +186,3 @@ def count_ngrams_in_batches(dataset: HuggingfaceDataset, tokenizer: PreTrainedTo
                                                  max_ngram_size, filter_ngram_count_threshold, save_dir)
 
     logger.info('Finished counting ngrams in batches')
-
-
-if __name__ == '__main__':
-    dataset = load_bookcorpus_dataset()
-    n_samples = 20_000_000
-    dataset = dataset.select(range(n_samples))
-    tokenizer = get_tokenizer()
-    save_dir = Path('../data')
-
-    count_ngrams_in_batches(
-        dataset=dataset,
-        tokenizer=tokenizer,
-        save_dir=save_dir,
-        ngram_count_batch_size=1_000_000,
-        n_workers=3,
-        max_ngram_size=5,
-        filter_ngram_count_threshold=2,
-        # since I accidentally deleted those counts:
-        # count_individual_ngrams=False,
-    )

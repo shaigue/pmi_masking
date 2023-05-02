@@ -90,14 +90,3 @@ def aggregate_batch_ngram_counts(save_dir: Path, max_ngram_size: int,
 
     connection.close()
     logger.info('aggregate batch ngram counts - end')
-
-
-def main():
-    save_dir = Path('../data')
-    max_ngram_size = 5
-    database_file = save_dir / 'ngram_data.duckdb'
-    aggregate_batch_ngram_counts(save_dir, max_ngram_size, database_file)
-
-
-if __name__ == '__main__':
-    main()
