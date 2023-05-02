@@ -10,7 +10,9 @@ def get_default_logging_config(file: str) -> dict:
     :param file: should be __file__ special variable in the module that calls this
         function.
     """
-    logs_dir = Path('../logs')
+    # TODO: maybe add some config file to the directory for project
+    #  level configurations.
+    logs_dir = Path(__file__).parents[1] / 'logs'
     date_str = datetime.now().strftime('%d-%m-%y')
     filename = Path(file).stem
     filename = f'{filename}_{date_str}.log'
@@ -19,7 +21,7 @@ def get_default_logging_config(file: str) -> dict:
             level=logging.INFO,
             format='%(asctime)s %(message)s',
             filename=str(log_file),
-            filemode='w'
+            filemode='a'
     )
 
 

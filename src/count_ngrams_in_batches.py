@@ -4,7 +4,6 @@ import os
 import sys
 from collections import Counter
 import logging
-from datetime import datetime
 from pathlib import Path
 
 import psutil
@@ -157,9 +156,8 @@ def count_ngrams_in_batches_and_save_to_file(dataset: HuggingfaceDataset, n_work
 
 def count_ngrams_in_batches(dataset: HuggingfaceDataset, tokenizer: PreTrainedTokenizerBase,
                             save_dir: Path, tokenizer_batch_size: int = 4_000,
-                            ngram_count_batch_size: int = 200_000, n_samples: int = None,
-                            n_workers: int = None, max_ngram_size: int = 5,
-                            filter_ngram_count_threshold: int = 1,
+                            ngram_count_batch_size: int = 200_000, n_workers: int = None,
+                            max_ngram_size: int = 5, filter_ngram_count_threshold: int = 1,
                             count_individual_ngrams: bool = True) -> None:
     """Main function for this module. gets a dataset, tokenizes it, counts how many times each ngram appears in the
     dataset and the total number of ngrams of each size are in the dataset, and saves those to files.
@@ -168,8 +166,6 @@ def count_ngrams_in_batches(dataset: HuggingfaceDataset, tokenizer: PreTrainedTo
     :param save_dir: directory to save the resulting files
     :param tokenizer_batch_size: the batch size to use when tokenizing
     :param ngram_count_batch_size: the batch size to use when counting ngrams
-    :param n_samples: number of samples to take from the start of the dataset.
-        If this is None, the entire dataset will be processed.
     :param n_workers: the number of worker processes to use.
     :param max_ngram_size: maximal size of ngrams to count
     :param filter_ngram_count_threshold: only ngrams with counts (per batch) greater or equal to this threshold will be
@@ -181,8 +177,6 @@ def count_ngrams_in_batches(dataset: HuggingfaceDataset, tokenizer: PreTrainedTo
     save_dir.mkdir(parents=True, exist_ok=True)
     if n_workers is None:
         n_workers = os.cpu_count()
-    if n_samples is not None:
-        dataset = dataset.select(range(n_samples))
 
     dataset = tokenize_dataset(dataset, tokenizer, n_workers, tokenizer_batch_size)
 
@@ -200,6 +194,8 @@ def count_ngrams_in_batches(dataset: HuggingfaceDataset, tokenizer: PreTrainedTo
 
 if __name__ == '__main__':
     dataset = load_bookcorpus_dataset()
+    n_samples = 20_000_000
+    dataset = dataset.select(range(n_samples))
     tokenizer = get_tokenizer()
     save_dir = Path('../data')
 
@@ -208,7 +204,6 @@ if __name__ == '__main__':
         tokenizer=tokenizer,
         save_dir=save_dir,
         ngram_count_batch_size=1_000_000,
-        n_samples=20_000_000,
         n_workers=3,
         max_ngram_size=5,
         filter_ngram_count_threshold=2,
