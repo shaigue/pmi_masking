@@ -1,13 +1,13 @@
 """Module for aggregating batch counts to a single database"""
-import logging
 from pathlib import Path
 
 import duckdb
 
 from src.utils import get_token_field_declaration_str, get_count_field_declaration_str, get_ngram_counts_table_name, \
-    get_key_str, get_default_logging_config
+    get_key_str, get_module_logger
 
-logging.basicConfig(**get_default_logging_config(__file__))
+logger = get_module_logger(__name__)
+
 
 # TODO: end-to-end test with counting ngrams module
 # TODO: plan scalability analysis and add logging to support that
@@ -64,12 +64,12 @@ def aggregate_batch_ngram_counts(save_dir: Path, max_ngram_size: int,
     """
     connection = duckdb.connect(str(database_file))
 
-    logging.info('aggregate batch ngram counts - start')
+    logger.info('aggregate batch ngram counts - start')
     for ngram_size in range(1, max_ngram_size + 1):
-        logging.info(f'aggregating ngrams of size {ngram_size}')
+        logger.info(f'aggregating ngrams of size {ngram_size}')
 
         create_table_query = get_create_table_query(ngram_size)
-        logging.info(f'creating new table. executing query:\n{create_table_query}')
+        logger.info(f'creating new table. executing query:\n{create_table_query}')
         connection.execute(create_table_query)
 
         ngram_size_dir = save_dir / str(ngram_size)
@@ -80,16 +80,16 @@ def aggregate_batch_ngram_counts(save_dir: Path, max_ngram_size: int,
                 ngram_size,
                 'table_to_insert'
             )
-            logging.info(f'merging file {parquet_file} into table - start. executing query:\n{merge_and_add_query}')
+            logger.info(f'merging file {parquet_file} into table - start. executing query:\n{merge_and_add_query}')
             connection.execute(merge_and_add_query)
-            logging.info(f'merging file {parquet_file} into table - end')
+            logger.info(f'merging file {parquet_file} into table - end')
 
             # record the size of the table
             table_size = len(connection.sql(f'SELECT * FROM {get_ngram_counts_table_name(ngram_size)}'))
-            logging.info(f'table size: {table_size}')
+            logger.info(f'table size: {table_size}')
 
     connection.close()
-    logging.info('aggregate batch ngram counts - end')
+    logger.info('aggregate batch ngram counts - end')
 
 
 def main():

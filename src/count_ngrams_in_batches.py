@@ -3,7 +3,6 @@ import json
 import os
 import sys
 from collections import Counter
-import logging
 from pathlib import Path
 
 import psutil
@@ -14,11 +13,10 @@ import pyarrow.parquet as pq
 
 from src.get_tokenizer import get_tokenizer
 from src.load_dataset import load_bookcorpus_dataset
-from src.utils import get_token_field_names, get_default_logging_config
+from src.utils import get_token_field_names, get_module_logger
 
 MEGA = 2 ** 20
-logging.basicConfig(**get_default_logging_config(__file__))
-
+logger = get_module_logger(__name__)
 
 # TODO: write an end-to-end test that checks that everything works right.
 #   this can be done after the module for integrating the file with DuckDB is done.
@@ -132,7 +130,7 @@ def count_ngrams_in_batches_and_save_to_file(dataset: HuggingfaceDataset, n_work
     """
     def count_ngrams_in_batch_and_save_to_file(batch: dict[str, list], indices: list[int]) -> None:
         start, end = indices[0], indices[-1]
-        logging.info(f'started working on samples {start}-{end};memory (MB): {get_memory_stats_mb()}')
+        logger.info(f'started working on samples {start}-{end};memory (MB): {get_memory_stats_mb()}')
         ngram_size_to_counter = count_ngrams_in_batch(batch['input_ids'], max_ngram_size)
 
         for ngram_size, counter in ngram_size_to_counter.items():
@@ -142,7 +140,7 @@ def count_ngrams_in_batches_and_save_to_file(dataset: HuggingfaceDataset, n_work
             path = save_dir_per_size / f'count_table_{start}-{end}.parquet'
             pq.write_table(table, str(path))
 
-        logging.info(f'finished samples {start} to {end};memory (MB): {get_memory_stats_mb()};'
+        logger.info(f'finished samples {start} to {end};memory (MB): {get_memory_stats_mb()};'
                      f'counter size (MB): {sys.getsizeof(ngram_size_to_counter) // MEGA}')
 
     dataset.map(
@@ -173,7 +171,7 @@ def count_ngrams_in_batches(dataset: HuggingfaceDataset, tokenizer: PreTrainedTo
     :param count_individual_ngrams: when True, counts individual ngrams. Otherwise, only counts total number
         of ngrams per size.
     """
-    logging.info('Starting to count ngrams in batches')
+    logger.info('Starting to count ngrams in batches')
     save_dir.mkdir(parents=True, exist_ok=True)
     if n_workers is None:
         n_workers = os.cpu_count()
@@ -189,7 +187,7 @@ def count_ngrams_in_batches(dataset: HuggingfaceDataset, tokenizer: PreTrainedTo
         count_ngrams_in_batches_and_save_to_file(dataset, n_workers, ngram_count_batch_size,
                                                  max_ngram_size, filter_ngram_count_threshold, save_dir)
 
-    logging.info('Finished counting ngrams in batches')
+    logger.info('Finished counting ngrams in batches')
 
 
 if __name__ == '__main__':

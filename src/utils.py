@@ -1,28 +1,28 @@
 # TODO: move here functions that are used in multiple modules. I don't want
 #   the different modules to be inter-dependent
 import logging
-from datetime import datetime
 from pathlib import Path
 
 
-def get_default_logging_config(file: str) -> dict:
+def get_module_logger(name: str) -> logging.Logger:
     """
-    :param file: should be __file__ special variable in the module that calls this
+    :param name: should be __name__ special variable in the module that calls this
         function.
     """
     # TODO: maybe add some config file to the directory for project
     #  level configurations.
+    logger = logging.getLogger(name)
+    logger.setLevel(logging.INFO)
+
     logs_dir = Path(__file__).parents[1] / 'logs'
-    date_str = datetime.now().strftime('%d-%m-%y')
-    filename = Path(file).stem
-    filename = f'{filename}_{date_str}.log'
-    log_file = logs_dir / filename
-    return dict(
-            level=logging.INFO,
-            format='%(asctime)s %(message)s',
-            filename=str(log_file),
-            filemode='a'
-    )
+    logs_dir.mkdir(exist_ok=True)
+    log_file = logs_dir / 'log.log'
+    handler = logging.FileHandler(str(log_file), mode='a')
+    handler.setLevel(logging.INFO)
+    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    handler.setFormatter(formatter)
+    logger.addHandler(handler)
+    return logger
 
 
 def get_token_field_name(token_i: int) -> str:
