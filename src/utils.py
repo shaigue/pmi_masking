@@ -66,4 +66,5 @@ def read_total_ngrams_per_size(save_dir: Path) -> dict[int, int]:
     json_file = get_total_ngrams_per_size_file(save_dir)
     with json_file.open('r') as f:
         total_ngrams_per_size = json.load(f)
+    # TODO convert keys to integers
     return total_ngrams_per_size

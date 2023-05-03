@@ -9,7 +9,6 @@ from src.utils import get_token_field_declaration_str, get_count_field_declarati
 logger = get_module_logger(__name__)
 
 
-# TODO: end-to-end test with counting ngrams module
 # TODO: plan scalability analysis and add logging to support that
 #   - extrapolate time for the entire dataset. to do so, we need to capture the start/end time for each file and
 #   data about the file.
