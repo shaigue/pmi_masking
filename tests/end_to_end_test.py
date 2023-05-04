@@ -8,7 +8,7 @@ from src.aggregate_batch_ngram_counts import aggregate_batch_ngram_counts
 from src.count_ngrams_in_batches import count_ngrams_in_batches
 from src.get_tokenizer import get_tokenizer
 from src.load_dataset import load_bookcorpus_dataset
-from src.naive_implementation import count_ngrams_naive
+from src.naive_implementation import count_ngrams_from_dataset
 from src.utils import get_ngram_counts_table_name, get_token_field_name
 
 
@@ -52,7 +52,7 @@ def end_to_end_test():
         database_file=database_file,
     )
     result = collect_ngram_counts_from_db(database_file, max_ngram_size)
-    expected = count_ngrams_naive(dataset, tokenizer, max_ngram_size)
+    expected = count_ngrams_from_dataset(dataset, tokenizer, max_ngram_size)
     if expected == result:
         print("Counting ngrams test passed.")
     else:

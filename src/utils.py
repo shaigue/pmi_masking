@@ -4,6 +4,9 @@ import json
 import logging
 from pathlib import Path
 
+from datasets import Dataset as HuggingfaceDataset
+from transformers import PreTrainedTokenizerBase
+
 
 def get_module_logger(name: str) -> logging.Logger:
     """
@@ -68,3 +71,20 @@ def read_total_ngrams_per_size(save_dir: Path) -> dict[int, int]:
         total_ngrams_per_size = json.load(f)
     # TODO convert keys to integers
     return total_ngrams_per_size
+
+
+Ngram = tuple[int, ...]
+
+
+def tokenize_dataset(dataset: HuggingfaceDataset, tokenizer: PreTrainedTokenizerBase,
+                     n_workers: int, tokenizer_batch_size: int):
+    def tokenize(batch: dict[str, list]):
+        return tokenizer(batch['text'], add_special_tokens=False)
+
+    dataset = dataset.map(
+        tokenize,
+        batched=True,
+        batch_size=tokenizer_batch_size,
+        num_proc=n_workers,
+    )
+    return dataset

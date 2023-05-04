@@ -11,7 +11,7 @@ from transformers import PreTrainedTokenizerBase
 import pyarrow as pa
 import pyarrow.parquet as pq
 
-from src.utils import get_token_field_names, get_module_logger, get_total_ngrams_per_size_file
+from src.utils import get_token_field_names, get_module_logger, get_total_ngrams_per_size_file, tokenize_dataset
 
 MEGA = 2 ** 20
 logger = get_module_logger(__name__)
@@ -31,20 +31,6 @@ def get_memory_stats_mb() -> dict:
         'used': mem.used // MEGA,
         'available': mem.available // MEGA
     }
-
-
-def tokenize_dataset(dataset: HuggingfaceDataset, tokenizer: PreTrainedTokenizerBase,
-                     n_workers: int, tokenizer_batch_size: int):
-    def tokenize(batch: dict[str, list]):
-        return tokenizer(batch['text'], add_special_tokens=False)
-
-    dataset = dataset.map(
-        tokenize,
-        batched=True,
-        batch_size=tokenizer_batch_size,
-        num_proc=n_workers,
-    )
-    return dataset
 
 
 def count_ngrams_in_batch(batch: list[list[int]], max_ngram_size: int) -> dict[int, Counter[tuple[int, ...], int]]:
