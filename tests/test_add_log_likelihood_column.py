@@ -7,7 +7,7 @@ import duckdb
 
 from src.add_log_likelihood_column import add_log_likelihood_column
 from src.aggregate_batch_ngram_counts import get_create_table_query
-from src.utils import get_ngram_counts_table_name
+from src.utils import get_ngram_table_name
 
 
 class TestAddLogLikelihoodColumn(unittest.TestCase):
@@ -37,7 +37,7 @@ class TestAddLogLikelihoodColumn(unittest.TestCase):
         connection = duckdb.connect(str(database_file))
         for ngram_size, ngram_counts in ngram_counts_per_size.items():
             create_table_query = get_create_table_query(ngram_size)
-            table_name = get_ngram_counts_table_name(ngram_size)
+            table_name = get_ngram_table_name(ngram_size)
             connection.execute(create_table_query)
             entries_to_insert = [ngram + (count, ) for ngram, count in ngram_counts.items()]
             entries_to_insert = ', '.join(map(str, entries_to_insert))
@@ -50,7 +50,7 @@ class TestAddLogLikelihoodColumn(unittest.TestCase):
 
         connection = duckdb.connect(str(database_file))
         for ngram_size, ngram_counts in ngram_counts_per_size.items():
-            table_name = get_ngram_counts_table_name(ngram_size)
+            table_name = get_ngram_table_name(ngram_size)
             expected = [math.log(count) - math.log(ngrams_of_size_count[ngram_size]) for _, count in ngram_counts.items()]
             result = connection.sql(f'SELECT log_likelihood FROM {table_name}').fetchall()
             for e, r in zip(expected, result):

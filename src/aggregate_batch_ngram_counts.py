@@ -3,7 +3,7 @@ from pathlib import Path
 
 import duckdb
 
-from src.utils import get_token_field_declaration_str, get_count_field_declaration_str, get_ngram_counts_table_name, \
+from src.utils import get_token_field_declaration_str, get_count_field_declaration_str, get_ngram_table_name, \
     get_key_str, get_module_logger
 
 logger = get_module_logger(__name__)
@@ -27,7 +27,7 @@ def get_create_table_query(ngram_size: int) -> str:
     fields_declarations = [get_token_field_declaration_str(token_i) for token_i in range(ngram_size)] + \
                           [get_count_field_declaration_str()]
     fields_declaration_str = ', '.join(fields_declarations)
-    table_name = get_ngram_counts_table_name(ngram_size)
+    table_name = get_ngram_table_name(ngram_size)
     create_table_query = f'CREATE OR REPLACE TABLE {table_name}(' \
                          f'{fields_declaration_str}, ' \
                          f'PRIMARY KEY({get_key_str(ngram_size)})' \
@@ -44,7 +44,7 @@ def get_merge_and_add_counts_query(ngram_size: int, table_to_insert: str) -> str
     :returns: an SQL query to execute
     """
     key_str = get_key_str(ngram_size)
-    insert_query = f'INSERT INTO {get_ngram_counts_table_name(ngram_size)} ' \
+    insert_query = f'INSERT INTO {get_ngram_table_name(ngram_size)} ' \
                    f'SELECT {key_str}, count FROM {table_to_insert} ' \
                    f'ON CONFLICT ({key_str}) DO UPDATE ' \
                    f'SET count = count + excluded.count;'
@@ -84,7 +84,7 @@ def aggregate_batch_ngram_counts(save_dir: Path, max_ngram_size: int,
             logger.info(f'merging file {parquet_file} into table - end')
 
             # record the size of the table
-            table_size = len(connection.sql(f'SELECT * FROM {get_ngram_counts_table_name(ngram_size)}'))
+            table_size = len(connection.sql(f'SELECT * FROM {get_ngram_table_name(ngram_size)}'))
             logger.info(f'table size: {table_size}')
 
     connection.close()

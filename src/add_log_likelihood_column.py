@@ -4,7 +4,7 @@ from pathlib import Path
 
 import duckdb
 
-from src.utils import get_ngram_counts_table_name, read_total_ngrams_per_size
+from src.utils import get_ngram_table_name, read_total_ngrams_per_size
 
 
 # TODO: consider passing a connection instead of a file, this might reduce number of calls to open / close.
@@ -17,10 +17,13 @@ def add_log_likelihood_column(database_file: Path, total_ngrams_per_size: dict[i
     :param total_ngrams_per_size: a dictionary containing the number of times ngrams of a given size appear in the
         dataset
     """
+    # TODO: maybe rename to `compute_log_likelihood`? also the module name?
+    # TODO: refactor all the function so that they will get a connection and not
+    #   a file.
     connection = duckdb.connect(str(database_file))
 
     for ngram_size, ngram_count in total_ngrams_per_size.items():
-        table_name = get_ngram_counts_table_name(ngram_size)
+        table_name = get_ngram_table_name(ngram_size)
         add_col_to_table_query = f"ALTER TABLE {table_name} ADD COLUMN log_likelihood DOUBLE;"
         connection.execute(add_col_to_table_query)
         log_total_count = math.log(ngram_count)

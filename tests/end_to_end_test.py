@@ -9,14 +9,14 @@ from src.count_ngrams_in_batches import count_ngrams_in_batches
 from src.get_tokenizer import get_tokenizer
 from src.load_dataset import load_bookcorpus_dataset
 from src.naive_implementation import count_ngrams_from_dataset
-from src.utils import get_ngram_counts_table_name, get_token_field_name
+from src.utils import get_ngram_table_name, get_token_field_name
 
 
 def collect_ngram_counts_from_db(database_file: Path, max_ngram_size: int) -> dict[tuple[int, ...], int]:
     connection = duckdb.connect(str(database_file))
     ngram_counts = {}
     for ngram_size in range(1, max_ngram_size + 1):
-        table_name = get_ngram_counts_table_name(ngram_size)
+        table_name = get_ngram_table_name(ngram_size)
         table = connection.sql(f'SELECT * FROM {table_name}').arrow()
         for row in table.to_pylist():
             ngram = tuple(row[get_token_field_name(token_i)] for token_i in range(ngram_size))

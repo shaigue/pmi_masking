@@ -1,7 +1,7 @@
 import itertools
 from collections import Counter, defaultdict
-from collections.abc import Iterable
 from math import log, floor
+from typing import Iterable
 
 from datasets import Dataset
 from transformers import PreTrainedTokenizerBase
@@ -97,6 +97,37 @@ def compute_max_segmentation_log_likelihood_sum(ngram_to_log_likelihood: dict[Ng
             for segmentation in iter_ngram_segmentations(ngram)
         )
     return ngram_to_max_segmentation_log_likelihood_sum
+
+
+def split_ngrams_by_size(ngrams: Iterable[Ngram]) -> dict[int, list[Ngram]]:
+    # no need to docstring
+    ngrams_by_size = defaultdict(list)
+    for ngram in ngrams:
+        ngrams_by_size[len(ngram)].append(ngram)
+    return dict(ngrams_by_size)
+
+
+def compute_max_segmentation_log_likelihood_sum_dynamic_programming(ngram_to_log_likelihood: dict[Ngram, float]) -> \
+        dict[Ngram, float]:
+    """Dynamic programming version of `compute_max_segmentation_log_likelihood_sum`."""
+    ngrams_by_size = split_ngrams_by_size(ngram_to_log_likelihood.keys())
+    max_ngram_size = max(ngrams_by_size.keys())
+    ngram_to_max_segmentation_log_likelihood = {}
+
+    def compute_sub_ngram_max_value(sub_ngram: Ngram) -> float:
+        if len(sub_ngram) == 1:
+            return ngram_to_log_likelihood[sub_ngram]
+        else:
+            return max(ngram_to_log_likelihood[sub_ngram], ngram_to_max_segmentation_log_likelihood[sub_ngram])
+
+    for ngram_size in range(2, max_ngram_size + 1):
+        for ngram in ngrams_by_size[ngram_size]:
+            ngram_to_max_segmentation_log_likelihood[ngram] = max(
+                compute_sub_ngram_max_value(ngram[:split_i]) + compute_sub_ngram_max_value(ngram[split_i:])
+                for split_i in range(1, ngram_size)
+            )
+
+    return ngram_to_max_segmentation_log_likelihood
 
 
 def compute_pmi_score(ngram_to_log_likelihood: dict[Ngram, float],
@@ -200,7 +231,6 @@ def count_ngrams_from_dataset(dataset: Dataset, tokenizer: PreTrainedTokenizerBa
     tokenized_samples = tokenized_dataset['input_ids']
     return count_ngrams(tokenized_samples, max_ngram_size)
 
-
 def compute_pmi_scores_from_tokenized_samples(tokenized_samples: list[list[int]],
                                               max_ngram_size: int) -> dict[Ngram, float]:
     total_ngrams_per_size = count_total_ngrams_per_size(tokenized_samples, max_ngram_size)
@@ -209,3 +239,4 @@ def compute_pmi_scores_from_tokenized_samples(tokenized_samples: list[list[int]]
     ngram_to_max_segmentation_log_likelihood_sum = compute_max_segmentation_log_likelihood_sum(ngram_to_log_likelihood)
     ngram_to_pmi_score = compute_pmi_score(ngram_to_log_likelihood, ngram_to_max_segmentation_log_likelihood_sum)
     return ngram_to_pmi_score
+

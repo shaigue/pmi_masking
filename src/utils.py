@@ -2,10 +2,22 @@
 #   the different modules to be inter-dependent
 import json
 import logging
+from enum import Enum, auto, StrEnum
 from pathlib import Path
 
 from datasets import Dataset as HuggingfaceDataset
 from transformers import PreTrainedTokenizerBase
+
+
+Ngram = tuple[int, ...]
+
+
+# TODO: use this enum all over the place...
+class Field(StrEnum):
+    count = auto()
+    log_likelihood = auto()
+    max_segmentation_log_likelihood_sum = auto()
+    pmi_score = auto()
 
 
 def get_module_logger(name: str) -> logging.Logger:
@@ -49,7 +61,7 @@ def get_count_field_declaration_str() -> str:
     return f'count {get_count_field_sql_type()}'
 
 
-def get_ngram_counts_table_name(ngram_size: int) -> str:
+def get_ngram_table_name(ngram_size: int) -> str:
     return f'ngram_of_size_{ngram_size}_counts_table'
 
 
@@ -65,15 +77,14 @@ def get_total_ngrams_per_size_file(save_dir):
     return save_dir / 'total_ngrams_per_size.json'
 
 
+
+
 def read_total_ngrams_per_size(save_dir: Path) -> dict[int, int]:
     json_file = get_total_ngrams_per_size_file(save_dir)
     with json_file.open('r') as f:
         total_ngrams_per_size = json.load(f)
     # TODO convert keys to integers
     return total_ngrams_per_size
-
-
-Ngram = tuple[int, ...]
 
 
 def tokenize_dataset(dataset: HuggingfaceDataset, tokenizer: PreTrainedTokenizerBase,

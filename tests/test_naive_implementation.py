@@ -2,7 +2,8 @@ import unittest
 from math import log
 
 from src.naive_implementation import count_total_ngrams_per_size, count_ngrams, iter_ngram_segmentations, \
-    compute_pmi_scores_from_tokenized_samples
+    compute_pmi_scores_from_tokenized_samples, compute_log_likelihood, compute_max_segmentation_log_likelihood_sum, \
+    compute_max_segmentation_log_likelihood_sum_dynamic_programming
 
 
 class TestNaiveImplementation(unittest.TestCase):
@@ -105,6 +106,28 @@ class TestNaiveImplementation(unittest.TestCase):
         result = compute_pmi_scores_from_tokenized_samples(tokenized_samples, max_ngram_size)
         for ngram, pmi_score in expected.items():
             self.assertAlmostEqual(pmi_score, result[ngram])
+
+    def assertDictAlmostEqual(self, d1: dict, d2: dict):
+        self.assertEqual(set(d1.keys()), set(d2.keys()))
+        for k in d1.keys():
+            self.assertAlmostEqual(d1[k], d2[k])
+
+    def test_compute_max_segmentation_log_likelihood_sum_dynamic_programming(self):
+        tokenized_samples = [
+            [1, 1, 1, 2, 3, 1, 0, 0, 1],
+            [1, 2, 1, 3, 3, 0],
+            [1, 2, 2, 3, 1, 0, 0, 1]
+        ]
+        max_ngram_size = 5
+
+        total_ngrams_per_size = count_total_ngrams_per_size(tokenized_samples, max_ngram_size)
+        ngram_to_count = count_ngrams(tokenized_samples, max_ngram_size)
+        ngram_to_log_likelihood = compute_log_likelihood(ngram_to_count, total_ngrams_per_size)
+
+        expected = compute_max_segmentation_log_likelihood_sum(ngram_to_log_likelihood)
+        result = compute_max_segmentation_log_likelihood_sum_dynamic_programming(ngram_to_log_likelihood)
+
+        self.assertDictAlmostEqual(expected, result)
 
 
 if __name__ == '__main__':

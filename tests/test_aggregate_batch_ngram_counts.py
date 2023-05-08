@@ -4,7 +4,7 @@ import duckdb
 import pyarrow as pa
 
 from src.aggregate_batch_ngram_counts import get_create_table_query, get_merge_and_add_counts_query
-from src.utils import get_ngram_counts_table_name
+from src.utils import get_ngram_table_name
 
 
 class TestAggregateBatchNgramCounts(unittest.TestCase):
@@ -24,7 +24,7 @@ class TestAggregateBatchNgramCounts(unittest.TestCase):
         expected = pa.table({'token_0': [1], 'token_1': [2], 'count': [5]}, schema=schema)
 
         create_query = get_create_table_query(ngram_size)
-        table_name = get_ngram_counts_table_name(ngram_size)
+        table_name = get_ngram_table_name(ngram_size)
         self.connection.execute(create_query)
         insert_query = f'INSERT INTO {table_name} VALUES (1, 2, 5);'
         self.connection.execute(insert_query)
@@ -67,7 +67,7 @@ class TestAggregateBatchNgramCounts(unittest.TestCase):
         query = get_merge_and_add_counts_query(ngram_size=ngram_size, table_to_insert='table_to_insert2')
         self.connection.execute(query)
 
-        result = set(self.connection.sql(f'SELECT * FROM {get_ngram_counts_table_name(ngram_size)}').fetchall())
+        result = set(self.connection.sql(f'SELECT * FROM {get_ngram_table_name(ngram_size)}').fetchall())
 
         self.assertEqual(expected, result)
 
