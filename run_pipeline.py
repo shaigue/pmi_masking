@@ -6,6 +6,7 @@ import duckdb
 from src.compute_log_likelihood import compute_log_likelihood
 from src.aggregate_batch_ngram_counts import aggregate_batch_ngram_counts
 from src.compute_max_segmentation_log_likelihood_sum import compute_max_segmentation_log_likelihood_sum
+from src.compute_pmi_score import compute_pmi_score
 from src.count_ngrams_in_batches import count_ngrams_in_batches
 from src.get_tokenizer import get_tokenizer
 from src.load_dataset import load_bookcorpus_dataset
@@ -47,5 +48,7 @@ if __name__ == '__main__':
     compute_log_likelihood(db_connection, total_ngrams_per_size)
 
     compute_max_segmentation_log_likelihood_sum(db_connection, max_ngram_size)
+
+    compute_pmi_score(db_connection, max_ngram_size)
 
     db_connection.close()

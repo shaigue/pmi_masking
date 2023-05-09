@@ -22,7 +22,7 @@ def compute_pmi_score_for_ngram_size(db_connection: duckdb.DuckDBPyConnection, n
     db_connection.execute(update_pmi_score_query)
 
 
-def compute_pmi_scores(db_connection: duckdb.DuckDBPyConnection, max_ngram_size: int) -> None:
+def compute_pmi_score(db_connection: duckdb.DuckDBPyConnection, max_ngram_size: int) -> None:
     """Goes over all the ngram tables in the DB and adds a pmi_score column and computes it's value.
     :param db_connection: an open read/write connection to a duckdb database.
     :param max_ngram_size: the maximal ngram size to consider.
