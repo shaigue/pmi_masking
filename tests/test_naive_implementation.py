@@ -6,7 +6,7 @@ from src.naive_implementation import count_total_ngrams_per_size, count_ngrams, 
     compute_max_segmentation_log_likelihood_sum_dynamic_programming
 
 
-class TestNaiveImplementation(unittest.TestCase):
+class MyTestCase(unittest.TestCase):
     def test_count_total_ngrams_per_size(self):
         tokenized_samples = [
             [1, 1, 1, 0, 1],

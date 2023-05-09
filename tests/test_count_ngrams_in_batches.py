@@ -3,11 +3,13 @@ from collections import Counter
 
 import pyarrow as pa
 
+from src import fields
 from src.count_ngrams_in_batches import count_ngrams_in_batch, convert_ngram_counter_to_pa_table, \
     count_total_ngrams_of_size_
+from src.utils import get_token_field_name
 
 
-class TestCountNgramsInBatches(unittest.TestCase):
+class MyTestCase(unittest.TestCase):
     def test_count_ngrams_in_batch(self):
         batch = [
             [1, 1, 1, 0, 1, 0, 2, 0, 2, 1]
@@ -55,10 +57,10 @@ class TestCountNgramsInBatches(unittest.TestCase):
         result = convert_ngram_counter_to_pa_table(counter, ngram_size, filter_ngram_count_threshold)
         expected = pa.table(
             data={
-                'token_1': [1, 1, 1, 0, 1, 0],
-                'token_2': [1, 1, 0, 1, 0, 2],
-                'token_3': [1, 0, 1, 0, 2, 0],
-                'count':   [1, 2, 1, 3, 1, 4]
+                get_token_field_name(0): [1, 1, 1, 0, 1, 0],
+                get_token_field_name(1): [1, 1, 0, 1, 0, 2],
+                get_token_field_name(2): [1, 0, 1, 0, 2, 0],
+                fields.COUNT:   [1, 2, 1, 3, 1, 4]
             }
         )
         self.assertEqual(expected, result)

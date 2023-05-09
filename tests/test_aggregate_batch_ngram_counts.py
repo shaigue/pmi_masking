@@ -7,7 +7,7 @@ from src.aggregate_batch_ngram_counts import get_create_table_query, get_merge_a
 from src.utils import get_ngram_table_name
 
 
-class TestAggregateBatchNgramCounts(unittest.TestCase):
+class MyTestCase(unittest.TestCase):
     def setUp(self) -> None:
         self.connection = duckdb.connect(':memory:')
 

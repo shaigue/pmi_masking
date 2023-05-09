@@ -49,7 +49,7 @@ def end_to_end_test():
     aggregate_batch_ngram_counts(
         save_dir=save_dir,
         max_ngram_size=max_ngram_size,
-        database_file=database_file,
+        db_connection=database_file,
     )
     result = collect_ngram_counts_from_db(database_file, max_ngram_size)
     expected = count_ngrams_from_dataset(dataset, tokenizer, max_ngram_size)

@@ -2,7 +2,6 @@
 #   the different modules to be inter-dependent
 import json
 import logging
-from enum import Enum, auto, StrEnum
 from pathlib import Path
 
 from datasets import Dataset as HuggingfaceDataset
@@ -10,14 +9,6 @@ from transformers import PreTrainedTokenizerBase
 
 
 Ngram = tuple[int, ...]
-
-
-# TODO: use this enum all over the place...
-class Field(StrEnum):
-    count = auto()
-    log_likelihood = auto()
-    max_segmentation_log_likelihood_sum = auto()
-    pmi_score = auto()
 
 
 def get_module_logger(name: str) -> logging.Logger:
@@ -62,7 +53,7 @@ def get_count_field_declaration_str() -> str:
 
 
 def get_ngram_table_name(ngram_size: int) -> str:
-    return f'ngram_of_size_{ngram_size}_counts_table'
+    return f'ngram_of_size_{ngram_size}_table'
 
 
 def get_token_field_names(ngram_size: int) -> list[str]:

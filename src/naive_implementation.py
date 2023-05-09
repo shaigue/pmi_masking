@@ -231,6 +231,7 @@ def count_ngrams_from_dataset(dataset: Dataset, tokenizer: PreTrainedTokenizerBa
     tokenized_samples = tokenized_dataset['input_ids']
     return count_ngrams(tokenized_samples, max_ngram_size)
 
+
 def compute_pmi_scores_from_tokenized_samples(tokenized_samples: list[list[int]],
                                               max_ngram_size: int) -> dict[Ngram, float]:
     total_ngrams_per_size = count_total_ngrams_per_size(tokenized_samples, max_ngram_size)

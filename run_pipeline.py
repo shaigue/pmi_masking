@@ -1,8 +1,11 @@
 import shutil
 from pathlib import Path
 
-from src.add_log_likelihood_column import add_log_likelihood_column
+import duckdb
+
+from src.compute_log_likelihood import compute_log_likelihood
 from src.aggregate_batch_ngram_counts import aggregate_batch_ngram_counts
+from src.compute_max_segmentation_log_likelihood_sum import compute_max_segmentation_log_likelihood_sum
 from src.count_ngrams_in_batches import count_ngrams_in_batches
 from src.get_tokenizer import get_tokenizer
 from src.load_dataset import load_bookcorpus_dataset
@@ -35,7 +38,12 @@ if __name__ == '__main__':
     )
 
     database_file = save_dir / 'ngram_data.duckdb'
-    aggregate_batch_ngram_counts(save_dir, max_ngram_size, database_file)
+    db_connection = duckdb.connect(str(database_file))
+    aggregate_batch_ngram_counts(save_dir, max_ngram_size, db_connection)
 
     total_ngrams_per_size = read_total_ngrams_per_size(save_dir)
-    add_log_likelihood_column(database_file, total_ngrams_per_size)
+    compute_log_likelihood(db_connection, total_ngrams_per_size)
+
+    compute_max_segmentation_log_likelihood_sum(db_connection, max_ngram_size)
+
+    db_connection.close()

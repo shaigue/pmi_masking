@@ -9,15 +9,6 @@ from src.utils import get_token_field_declaration_str, get_count_field_declarati
 logger = get_module_logger(__name__)
 
 
-# TODO: plan scalability analysis and add logging to support that
-#   - extrapolate time for the entire dataset. to do so, we need to capture the start/end time for each file and
-#   data about the file.
-#   - extrapolate space for the entire dataset. for that we can record the number of entries in the table after each
-#   merge.
-# TODO: run on the entire sample
-# TODO: scalability analysis
-
-
 def get_create_table_query(ngram_size: int) -> str:
     """Generates a query that creates a new table with a column for each token in the ngram
     in its total count. A different table should be created for every ngram size.
@@ -52,40 +43,37 @@ def get_merge_and_add_counts_query(ngram_size: int, table_to_insert: str) -> str
 
 
 def aggregate_batch_ngram_counts(save_dir: Path, max_ngram_size: int,
-                                 database_file: Path) -> None:
+                                 db_connection: duckdb.DuckDBPyConnection) -> None:
     """Collects all the batch counts from `save_dir` and aggregates them to a single database.
     each ngram size gets a separate table.
     :param save_dir: the directory where the ngram counts where saved. expects this
         directory to have a subdirectory for every ngram size, e.g., subdirectory '4' for
         counts of ngrams of size 4.
     :param max_ngram_size: the maximum size of ngram to consider.
-    :param database_file: a file to place the resulting database in.
+    :param db_connection: a read / write connection to a duckdb database.
     """
-    connection = duckdb.connect(str(database_file))
-
     logger.info('aggregate batch ngram counts - start')
     for ngram_size in range(1, max_ngram_size + 1):
         logger.info(f'aggregating ngrams of size {ngram_size}')
 
         create_table_query = get_create_table_query(ngram_size)
         logger.info(f'creating new table. executing query:\n{create_table_query}')
-        connection.execute(create_table_query)
+        db_connection.execute(create_table_query)
 
         ngram_size_dir = save_dir / str(ngram_size)
         parquet_files = list(ngram_size_dir.glob('*.parquet'))
         for parquet_file in parquet_files:
-            table_to_insert = connection.from_parquet(str(parquet_file))
+            table_to_insert = db_connection.from_parquet(str(parquet_file))
             merge_and_add_query = get_merge_and_add_counts_query(
                 ngram_size,
                 'table_to_insert'
             )
             logger.info(f'merging file {parquet_file} into table - start. executing query:\n{merge_and_add_query}')
-            connection.execute(merge_and_add_query)
+            db_connection.execute(merge_and_add_query)
             logger.info(f'merging file {parquet_file} into table - end')
 
             # record the size of the table
-            table_size = len(connection.sql(f'SELECT * FROM {get_ngram_table_name(ngram_size)}'))
+            table_size = len(db_connection.sql(f'SELECT * FROM {get_ngram_table_name(ngram_size)}'))
             logger.info(f'table size: {table_size}')
 
-    connection.close()
     logger.info('aggregate batch ngram counts - end')
