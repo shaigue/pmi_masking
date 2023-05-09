@@ -1,5 +1,6 @@
 import json
 import logging
+from math import floor
 from pathlib import Path
 
 from datasets import Dataset as HuggingfaceDataset
@@ -65,7 +66,7 @@ def get_token_field_names(ngram_size: int) -> list[str]:
     return [get_token_field_name(token_i) for token_i in range(ngram_size)]
 
 
-def get_key_str(ngram_size: int) -> str:
+def get_token_fields_str(ngram_size: int) -> str:
     return ', '.join(get_token_field_name(token_i) for token_i in range(ngram_size))
 
 
@@ -93,3 +94,25 @@ def tokenize_dataset(dataset: HuggingfaceDataset, tokenizer: PreTrainedTokenizer
         num_proc=n_workers,
     )
     return dataset
+
+
+def validate_ngram_size_to_vocab_percent(ngram_size_to_vocab_percent: dict[int, int]):
+    if 1 in ngram_size_to_vocab_percent.keys():
+        raise ValueError('there should not be ngrams of size 1 in the vocabulary. '
+                         f'input suggests that there should be {ngram_size_to_vocab_percent[1]}% ngrams of size 1.')
+
+    total_percent = sum(ngram_size_to_vocab_percent.values())
+    if total_percent != 100:
+        raise ValueError(f'the total percents should sum up to 100. '
+                         f'input: {ngram_size_to_vocab_percent} sums to {total_percent}.')
+
+
+def compute_number_of_ngrams_per_size_in_vocab(ngram_size_to_vocab_percent: dict[int, int], vocab_size: int):
+    # compute how much ngrams per size we take
+    number_of_ngrams_of_size_in_vocab = {}
+    for ngram_size, vocab_percent in ngram_size_to_vocab_percent.items():
+        number_of_ngrams_of_size_in_vocab[ngram_size] = floor(vocab_size * vocab_percent / 100)
+    # take the extra tokens from the smallest ngram_size (=2)
+    extra_ngrams = vocab_size - sum(number_of_ngrams_of_size_in_vocab.values())
+    number_of_ngrams_of_size_in_vocab[2] += extra_ngrams
+    return number_of_ngrams_of_size_in_vocab

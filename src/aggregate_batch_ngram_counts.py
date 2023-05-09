@@ -5,7 +5,7 @@ import duckdb
 
 from src import fields
 from src.utils import get_token_field_declaration_str, get_count_field_declaration_str, get_ngram_table_name, \
-    get_key_str, get_module_logger
+    get_token_fields_str, get_module_logger
 
 logger = get_module_logger(__name__)
 
@@ -22,7 +22,7 @@ def get_create_table_query(ngram_size: int) -> str:
     table_name = get_ngram_table_name(ngram_size)
     create_table_query = f'CREATE OR REPLACE TABLE {table_name}(' \
                          f'{fields_declaration_str}, ' \
-                         f'PRIMARY KEY({get_key_str(ngram_size)})' \
+                         f'PRIMARY KEY({get_token_fields_str(ngram_size)})' \
                          f');'
     return create_table_query
 
@@ -35,7 +35,7 @@ def get_merge_and_add_counts_query(ngram_size: int, table_to_insert: str) -> str
     :param table_to_insert: name of the table to insert
     :returns: an SQL query to execute
     """
-    key_str = get_key_str(ngram_size)
+    key_str = get_token_fields_str(ngram_size)
     insert_query = f'INSERT INTO {get_ngram_table_name(ngram_size)} ' \
                    f'SELECT {key_str}, {fields.COUNT} FROM {table_to_insert} ' \
                    f'ON CONFLICT ({key_str}) DO UPDATE ' \

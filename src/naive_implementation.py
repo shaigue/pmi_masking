@@ -1,12 +1,13 @@
 import itertools
 from collections import Counter, defaultdict
-from math import log, floor
+from math import log
 from typing import Iterable
 
 from datasets import Dataset
 from transformers import PreTrainedTokenizerBase
 
-from src.utils import Ngram, tokenize_dataset
+from src.utils import Ngram, tokenize_dataset, validate_ngram_size_to_vocab_percent, \
+    compute_number_of_ngrams_per_size_in_vocab
 
 
 # TODO: let zach code review this.
@@ -167,18 +168,9 @@ def compute_pmi_masking_vocab(ngram_to_count: dict[Ngram, int], ngram_to_pmi_sco
         ngrams of size 2, 30% ngrams of size 3 and 40% ngrams of size 4.
     :return: list containing the ngrams selected to go into the masking vocabulary.
     """
-    total_percent = sum(ngram_size_to_vocab_percent.values())
-    if total_percent != 100:
-        raise ValueError(f'the total percents should sum up to 100. '
-                         f'input: {ngram_size_to_vocab_percent} sums to {total_percent}.')
-    # compute how much ngrams per size we take
-    number_of_ngrams_of_size_in_vocab = {}
-    for ngram_size, vocab_percent in ngram_size_to_vocab_percent.items():
-        number_of_ngrams_of_size_in_vocab[ngram_size] = floor(vocab_size * vocab_percent / 100)
-
-    # take the extra tokens from the smallest ngram_size (=2)
-    extra_ngrams = vocab_size - sum(number_of_ngrams_of_size_in_vocab.values())
-    number_of_ngrams_of_size_in_vocab[2] += extra_ngrams
+    validate_ngram_size_to_vocab_percent(ngram_size_to_vocab_percent)
+    number_of_ngrams_per_size_in_vocab = compute_number_of_ngrams_per_size_in_vocab(ngram_size_to_vocab_percent,
+                                                                                    vocab_size)
 
     # split ngrams according to size and filter those who do not exceed the minimal count threshold
     ngrams_list_by_size = defaultdict(list)
@@ -192,7 +184,7 @@ def compute_pmi_masking_vocab(ngram_to_count: dict[Ngram, int], ngram_to_pmi_sco
 
     masking_vocab = []
     for ngram_size, ngrams_list in ngrams_list_by_size.items():
-        masking_vocab += ngrams_list[:number_of_ngrams_of_size_in_vocab[ngram_size]]
+        masking_vocab += ngrams_list[:number_of_ngrams_per_size_in_vocab[ngram_size]]
 
     return masking_vocab
 
