@@ -63,7 +63,8 @@ def aggregate_batch_ngram_counts(save_dir: Path, max_ngram_size: int,
 
         ngram_size_dir = save_dir / str(ngram_size)
         parquet_files = list(ngram_size_dir.glob('*.parquet'))
-        for parquet_file in parquet_files:
+        for file_i, parquet_file in enumerate(parquet_files, 1):
+            logger.info(f'processing file {file_i} out of {len(parquet_files)}')
             table_to_insert = db_connection.from_parquet(str(parquet_file))
             merge_and_add_query = get_merge_and_add_counts_query(
                 ngram_size,
