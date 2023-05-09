@@ -12,6 +12,8 @@ from src.naive_implementation import count_ngrams_from_dataset
 from src.utils import get_ngram_table_name, get_token_field_name
 
 
+# TODO: run this test, and add compute max_segmentation... to the pipeline...
+
 def collect_ngram_counts_from_db(database_file: Path, max_ngram_size: int) -> dict[tuple[int, ...], int]:
     connection = duckdb.connect(str(database_file))
     ngram_counts = {}

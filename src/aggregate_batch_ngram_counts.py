@@ -3,6 +3,7 @@ from pathlib import Path
 
 import duckdb
 
+from src import fields
 from src.utils import get_token_field_declaration_str, get_count_field_declaration_str, get_ngram_table_name, \
     get_key_str, get_module_logger
 
@@ -36,9 +37,9 @@ def get_merge_and_add_counts_query(ngram_size: int, table_to_insert: str) -> str
     """
     key_str = get_key_str(ngram_size)
     insert_query = f'INSERT INTO {get_ngram_table_name(ngram_size)} ' \
-                   f'SELECT {key_str}, count FROM {table_to_insert} ' \
+                   f'SELECT {key_str}, {fields.COUNT} FROM {table_to_insert} ' \
                    f'ON CONFLICT ({key_str}) DO UPDATE ' \
-                   f'SET count = count + excluded.count;'
+                   f'SET {fields.COUNT} = {fields.COUNT} + excluded.{fields.COUNT};'
     return insert_query
 
 

@@ -1,7 +1,7 @@
 """In this module we compare two masking vocabulary to understand their differences"""
+
+
 # TODO: compare the generated vocabulary to the official masking vocabulary (wiki+bookcorpus)
-
-
 # TODO: this should probably be refactored and moved somewhere else
 def load_vocab_from_file(file: str) -> list[str]:
     with open(file, 'r', encoding='utf-8') as f:

@@ -5,6 +5,7 @@ from pathlib import Path
 
 import duckdb
 
+from src import fields
 from src.compute_log_likelihood import compute_log_likelihood
 from src.aggregate_batch_ngram_counts import get_create_table_query
 from src.utils import get_ngram_table_name
@@ -50,7 +51,7 @@ class MyTestCase(unittest.TestCase):
         for ngram_size, ngram_counts in ngram_counts_per_size.items():
             table_name = get_ngram_table_name(ngram_size)
             expected = [math.log(count) - math.log(ngrams_of_size_count[ngram_size]) for _, count in ngram_counts.items()]
-            result = self.db_connection.sql(f'SELECT log_likelihood FROM {table_name}').fetchall()
+            result = self.db_connection.sql(f'SELECT {fields.LOG_LIKELIHOOD} FROM {table_name}').fetchall()
             for e, r in zip(expected, result):
                 r = r[0]
                 self.assertAlmostEqual(e, r)

@@ -9,6 +9,9 @@ from src.compute_max_segmentation_log_likelihood_sum import get_join_condition, 
 from src.utils import get_ngram_table_name, get_token_field_name
 
 
+# TODO: consider adding a 'test_utils' module, especially for converting table data into python objects
+
+
 class MyTestCase(unittest.TestCase):
     def setUp(self) -> None:
         self.db_connection = duckdb.connect(':memory:')
@@ -34,7 +37,6 @@ class MyTestCase(unittest.TestCase):
         self.assertEqual(expected1, result1)
         self.assertEqual(expected2, result2)
 
-    # TODO: maybe do a 'test_utils' module, especially for converting table data into python objects
     def test_compute_max_segmentation_log_likelihood_sum(self):
         max_ngram_size = 3
         table_of_size_1 = {

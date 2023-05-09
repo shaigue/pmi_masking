@@ -11,6 +11,8 @@ from src.get_tokenizer import get_tokenizer
 from src.load_dataset import load_bookcorpus_dataset
 from src.utils import read_total_ngrams_per_size
 
+# TODO: add checkpoints? so we can resume if we where interrupted?
+
 if __name__ == '__main__':
     n_samples = 30_000_000
     ngram_count_batch_size = 1_000_000

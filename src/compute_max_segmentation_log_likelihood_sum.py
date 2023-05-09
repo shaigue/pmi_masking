@@ -92,7 +92,6 @@ def compute_max_segmentation_log_likelihood_sum(db_connection: duckdb.DuckDBPyCo
     :param db_connection: an open connection to the DB containing the ngram data tables.
     :param max_ngram_size: the maximal ngram size to consider.
     """
-    # TODO: later, shorten / change the name of the tables...
     logger.info('start')
     for ngram_size in range(2, max_ngram_size + 1):
         logger.info(f'computing for ngram_size={ngram_size}')

@@ -11,17 +11,11 @@ from transformers import PreTrainedTokenizerBase
 import pyarrow as pa
 import pyarrow.parquet as pq
 
+from src import fields
 from src.utils import get_token_field_names, get_module_logger, get_total_ngrams_per_size_file, tokenize_dataset
 
 MEGA = 2 ** 20
 logger = get_module_logger(__name__)
-
-# TODO: write an end-to-end test that checks that everything works right.
-#   this can be done after the module for integrating the file with DuckDB is done.
-# TODO: create a main script that runs this together with the other parts.
-# TODO: add checkpoints? so we can resume if we where interrupted?
-# TODO: figure how do I want to do logging. maybe log details about the dataset? or something else?
-# TODO: maybe automatically delete the files when re-starting?
 
 
 def get_memory_stats_mb() -> dict:
@@ -94,7 +88,7 @@ def convert_ngram_counter_to_pa_table(counter: Counter[tuple[int, ...], int], ng
         count_column.append(count)
     table = pa.table(
         [*token_columns, count_column],
-        names=[*token_fields_names, 'count']
+        names=[*token_fields_names, fields.COUNT]
     )
     return table
 
@@ -125,7 +119,7 @@ def count_ngrams_in_batches_and_save_to_file(dataset: HuggingfaceDataset, n_work
             pq.write_table(table, str(path))
 
         logger.info(f'finished samples {start} to {end};memory (MB): {get_memory_stats_mb()};'
-                     f'counter size (MB): {sys.getsizeof(ngram_size_to_counter) // MEGA}')
+                    f'counter size (MB): {sys.getsizeof(ngram_size_to_counter) // MEGA}')
 
     dataset.map(
         count_ngrams_in_batch_and_save_to_file,
