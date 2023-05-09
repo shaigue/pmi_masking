@@ -8,6 +8,7 @@ datasets
 # for getting memory stats
 psutil
 # for working with larger than memory data
+pyarrow
 duckdb
 # TODO: might not need the next ones for deployment
 matplotlib

@@ -130,6 +130,11 @@ def compute_max_segmentation_log_likelihood_sum_dynamic_programming(ngram_to_log
     return ngram_to_max_segmentation_log_likelihood
 
 
+def pmi_score(log_likelihood: float, max_segmentation_log_likelihood_sum: float) -> float:
+    """The formula for pmi score (after pushing the log inside)"""
+    return 2 * log_likelihood - max_segmentation_log_likelihood_sum
+
+
 def compute_pmi_score(ngram_to_log_likelihood: dict[Ngram, float],
                       ngram_to_max_segmentation_log_likelihood_sum: dict[Ngram, float]) -> dict[Ngram, float]:
     """Computes the pmi scores of ngrams.
@@ -140,8 +145,10 @@ def compute_pmi_score(ngram_to_log_likelihood: dict[Ngram, float],
     """
     ngram_to_pmi_score = {}
     for ngram in ngram_to_max_segmentation_log_likelihood_sum.keys():
-        ngram_to_pmi_score[ngram] = 2 * ngram_to_log_likelihood[ngram] - \
-                                    ngram_to_max_segmentation_log_likelihood_sum[ngram]
+        ngram_to_pmi_score[ngram] = pmi_score(
+            ngram_to_log_likelihood[ngram],
+            ngram_to_max_segmentation_log_likelihood_sum[ngram]
+        )
     return ngram_to_pmi_score
 
 
