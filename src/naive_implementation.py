@@ -3,11 +3,11 @@ from collections import Counter, defaultdict
 from math import log
 from typing import Iterable
 
-from datasets import Dataset
-from transformers import PreTrainedTokenizerBase
+from datasets import Dataset as HuggingFaceDataset
 
-from src.utils import Ngram, tokenize_dataset, validate_ngram_size_to_vocab_percent, \
-    compute_number_of_ngrams_per_size_in_vocab
+from src import fields
+from src.load_dataset import load_bookcorpus_dataset
+from src.utils import Ngram, validate_ngram_size_to_vocab_percent, compute_number_of_ngrams_per_size_in_vocab
 
 
 # TODO: let zach code review this.
@@ -189,18 +189,20 @@ def compute_pmi_masking_vocab(ngram_to_count: dict[Ngram, int], ngram_to_pmi_sco
     return masking_vocab
 
 
-def compute_pmi_masking_vocab_from_tokenized_samples(tokenized_samples: list[list[int]],
-                                                     max_ngram_size: int, vocab_size: int, min_count_threshold: int,
-                                                     ngram_size_to_vocab_percent: dict[int, int]) -> list[Ngram]:
+def run_pipeline_naive(n_samples: int, max_ngram_size: int, vocab_size: int,
+                       min_count_threshold: int, ngram_size_to_vocab_percent: dict[int, int]) -> dict:
     """Computes a pmi masking vocabulary from a tokenized dataset.
-    :param tokenized_samples: tokenized input sequences
+    :param n_samples: number of samples to take from the dataset.
     :param max_ngram_size: maximal size of ngram to consider
     :param vocab_size: size of the output vocabulary
     :param min_count_threshold: filter ngrams that occur less than this value
     :param ngram_size_to_vocab_percent: dictionary mapping ngram sizes to the percent of the output vocabulary
         that will be of that size.
-    :return: list of ngrams that where selected to be in the pmi masking vocabulary.
+    :return: a dictionary containing the intermediate results of the pipeline, for testing the db based implementation.
     """
+    # TODO: need to make this more flexible, enabling it to load different datasets. for now it does the job.
+    dataset = load_bookcorpus_dataset(n_samples)
+    tokenized_samples = dataset['input_ids']
     total_ngrams_per_size = count_total_ngrams_per_size(tokenized_samples, max_ngram_size)
     ngram_to_count = count_ngrams(tokenized_samples, max_ngram_size)
     ngram_to_log_likelihood = compute_log_likelihood(ngram_to_count, total_ngrams_per_size)
@@ -213,22 +215,27 @@ def compute_pmi_masking_vocab_from_tokenized_samples(tokenized_samples: list[lis
         min_count_threshold,
         ngram_size_to_vocab_percent,
     )
-    return pmi_masking_vocab
+    return {
+        'total_ngrams_per_size': total_ngrams_per_size,
+        fields.COUNT: ngram_to_count,
+        fields.LOG_LIKELIHOOD: ngram_to_log_likelihood,
+        fields.MAX_SEGMENTATION_LOG_LIKELIHOOD_SUM: ngram_to_max_segmentation_log_likelihood_sum,
+        fields.PMI_SCORE: ngram_to_pmi_score,
+        'pmi_masking_vocab': pmi_masking_vocab
+    }
+
+
+def run_pipeline_naive_with_parameters(parameters):
+    return run_pipeline_naive(
+        max_ngram_size=parameters.max_ngram_size,
+        min_count_threshold=parameters.min_count_threshold,
+        vocab_size=parameters.vocab_size,
+        ngram_size_to_vocab_percent=parameters.ngram_size_to_vocab_percent,
+        n_samples=parameters.n_samples,
+    )
 
 
 # ==================================== Functions for testing ===========================================================
-
-
-def count_ngrams_from_dataset(dataset: Dataset, tokenizer: PreTrainedTokenizerBase,
-                              max_ngram_size: int) -> dict[Ngram, int]:
-    tokenized_dataset = tokenize_dataset(
-        dataset,
-        tokenizer,
-        n_workers=1,
-        tokenizer_batch_size=1_000
-    )
-    tokenized_samples = tokenized_dataset['input_ids']
-    return count_ngrams(tokenized_samples, max_ngram_size)
 
 
 def compute_pmi_scores_from_tokenized_samples(tokenized_samples: list[list[int]],

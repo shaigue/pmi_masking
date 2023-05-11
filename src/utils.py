@@ -3,6 +3,7 @@ import logging
 from math import floor
 from pathlib import Path
 
+import duckdb
 from datasets import Dataset as HuggingfaceDataset
 from transformers import PreTrainedTokenizerBase
 
@@ -78,7 +79,8 @@ def read_total_ngrams_per_size(save_dir: Path) -> dict[int, int]:
     json_file = get_total_ngrams_per_size_file(save_dir)
     with json_file.open('r') as f:
         total_ngrams_per_size = json.load(f)
-    # TODO convert keys to integers
+
+    total_ngrams_per_size = {int(key): value for key, value in total_ngrams_per_size.items()}
     return total_ngrams_per_size
 
 
@@ -96,7 +98,7 @@ def tokenize_dataset(dataset: HuggingfaceDataset, tokenizer: PreTrainedTokenizer
     return dataset
 
 
-def validate_ngram_size_to_vocab_percent(ngram_size_to_vocab_percent: dict[int, int]):
+def validate_ngram_size_to_vocab_percent(ngram_size_to_vocab_percent: dict[int, float]):
     if 1 in ngram_size_to_vocab_percent.keys():
         raise ValueError('there should not be ngrams of size 1 in the vocabulary. '
                          f'input suggests that there should be {ngram_size_to_vocab_percent[1]}% ngrams of size 1.')
@@ -107,7 +109,7 @@ def validate_ngram_size_to_vocab_percent(ngram_size_to_vocab_percent: dict[int, 
                          f'input: {ngram_size_to_vocab_percent} sums to {total_percent}.')
 
 
-def compute_number_of_ngrams_per_size_in_vocab(ngram_size_to_vocab_percent: dict[int, int], vocab_size: int):
+def compute_number_of_ngrams_per_size_in_vocab(ngram_size_to_vocab_percent: dict[int, float], vocab_size: int):
     # compute how much ngrams per size we take
     number_of_ngrams_of_size_in_vocab = {}
     for ngram_size, vocab_percent in ngram_size_to_vocab_percent.items():
@@ -116,3 +118,9 @@ def compute_number_of_ngrams_per_size_in_vocab(ngram_size_to_vocab_percent: dict
     extra_ngrams = vocab_size - sum(number_of_ngrams_of_size_in_vocab.values())
     number_of_ngrams_of_size_in_vocab[2] += extra_ngrams
     return number_of_ngrams_of_size_in_vocab
+
+
+def open_db_connection(save_dir: Path):
+    database_file = save_dir / 'ngram_data.duckdb'
+    db_connection = duckdb.connect(str(database_file))
+    return db_connection

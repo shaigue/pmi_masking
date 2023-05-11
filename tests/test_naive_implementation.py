@@ -7,6 +7,11 @@ from src.naive_implementation import count_total_ngrams_per_size, count_ngrams, 
 
 
 class MyTestCase(unittest.TestCase):
+    def assertDictAlmostEqual(self, d1: dict, d2: dict):
+        self.assertEqual(set(d1.keys()), set(d2.keys()))
+        for k in d1.keys():
+            self.assertAlmostEqual(d1[k], d2[k])
+
     def test_count_total_ngrams_per_size(self):
         tokenized_samples = [
             [1, 1, 1, 0, 1],
@@ -106,11 +111,6 @@ class MyTestCase(unittest.TestCase):
         result = compute_pmi_scores_from_tokenized_samples(tokenized_samples, max_ngram_size)
         for ngram, pmi_score in expected.items():
             self.assertAlmostEqual(pmi_score, result[ngram])
-
-    def assertDictAlmostEqual(self, d1: dict, d2: dict):
-        self.assertEqual(set(d1.keys()), set(d2.keys()))
-        for k in d1.keys():
-            self.assertAlmostEqual(d1[k], d2[k])
 
     def test_compute_max_segmentation_log_likelihood_sum_dynamic_programming(self):
         tokenized_samples = [

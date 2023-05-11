@@ -130,17 +130,14 @@ def count_ngrams_in_batches_and_save_to_file(dataset: HuggingfaceDataset, n_work
     )
 
 
-def count_ngrams_in_batches(dataset: HuggingfaceDataset, tokenizer: PreTrainedTokenizerBase,
-                            save_dir: Path, tokenizer_batch_size: int = 4_000,
+def count_ngrams_in_batches(tokenized_dataset: HuggingfaceDataset, save_dir: Path,
                             ngram_count_batch_size: int = 200_000, n_workers: int = None,
                             max_ngram_size: int = 5, filter_ngram_count_threshold: int = 1,
                             count_individual_ngrams: bool = True) -> None:
     """Main function for this module. gets a dataset, tokenizes it, counts how many times each ngram appears in the
     dataset and the total number of ngrams of each size are in the dataset, and saves those to files.
-    :param dataset: dataset to process. assume it contains text in the 'text' column
-    :param tokenizer: tokenizer to use for tokenizing the dataset.
+    :param tokenized_dataset: dataset to process. assume it contains text in the 'text' column
     :param save_dir: directory to save the resulting files
-    :param tokenizer_batch_size: the batch size to use when tokenizing
     :param ngram_count_batch_size: the batch size to use when counting ngrams
     :param n_workers: the number of worker processes to use.
     :param max_ngram_size: maximal size of ngrams to count
@@ -149,20 +146,21 @@ def count_ngrams_in_batches(dataset: HuggingfaceDataset, tokenizer: PreTrainedTo
     :param count_individual_ngrams: when True, counts individual ngrams. Otherwise, only counts total number
         of ngrams per size.
     """
+    if 'input_ids' not in tokenized_dataset.features:
+        raise RuntimeError('Dataset should be tokenized. Feature "input_ids" not found.')
+
     logger.info('Starting to count ngrams in batches')
     save_dir.mkdir(parents=True, exist_ok=True)
     if n_workers is None:
         n_workers = os.cpu_count()
 
-    dataset = tokenize_dataset(dataset, tokenizer, n_workers, tokenizer_batch_size)
-
     ngram_of_size_file = get_total_ngrams_per_size_file(save_dir)
-    total_ngrams_per_size = count_total_ngrams_of_size(dataset, max_ngram_size)
+    total_ngrams_per_size = count_total_ngrams_of_size(tokenized_dataset, max_ngram_size)
     with ngram_of_size_file.open('w') as f:
         json.dump(total_ngrams_per_size, f, indent=4)
 
     if count_individual_ngrams:
-        count_ngrams_in_batches_and_save_to_file(dataset, n_workers, ngram_count_batch_size,
+        count_ngrams_in_batches_and_save_to_file(tokenized_dataset, n_workers, ngram_count_batch_size,
                                                  max_ngram_size, filter_ngram_count_threshold, save_dir)
 
     logger.info('Finished counting ngrams in batches')

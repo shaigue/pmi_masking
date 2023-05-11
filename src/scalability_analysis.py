@@ -7,7 +7,7 @@ import json
 import re
 from typing import Any
 
-from config import PROJECT_ROOT_PATH
+from config import PROJECT_ROOT
 
 # TODO: maybe use a configuration file for the 'run_pipline' file, and use it both for running and scalability analysis
 ngram_count_batch_size = 1_000_000
@@ -15,8 +15,8 @@ n_samples = 30_000_000
 n_workers = 3
 max_ngram_size = 5
 filter_ngram_count_threshold = 2
-save_dir = PROJECT_ROOT_PATH / 'data'
-log_file = PROJECT_ROOT_PATH / 'logs/log.log'
+save_dir = PROJECT_ROOT / 'data'
+log_file = PROJECT_ROOT / 'logs/log.log'
 total_ngram_per_size_file = save_dir / 'total_ngrams_per_size.json'
 N_TOKENS_WIKIPEDIA = 24_000_000_000         # 24 Billion
 N_TOKENS_RED_PAJAMA = 1_200_000_000_000     # 1.2 Trillion

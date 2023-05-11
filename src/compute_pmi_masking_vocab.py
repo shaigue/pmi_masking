@@ -5,8 +5,6 @@ from src.utils import validate_ngram_size_to_vocab_percent, compute_number_of_ng
     get_token_fields_str, get_ngram_table_name
 
 
-# TODO: test
-# TODO: document
 # TODO: complete and run the end-to-end test
 # TODO: add logging, collect data for scalability analysis
 # TODO: add to run_pipline
@@ -31,7 +29,7 @@ def compute_pmi_masking_vocab_per_ngram_size(db_connection: duckdb.DuckDBPyConne
 
 
 def compute_pmi_masking_vocab(db_connection: duckdb.DuckDBPyConnection, vocab_size: int, min_count_threshold: int,
-                              ngram_size_to_vocab_percent: dict[int, int]) -> list[Ngram]:
+                              ngram_size_to_vocab_percent: dict[int, float]) -> list[Ngram]:
     """Computes the pmi masking vocabulary.
     :param db_connection: an open read/write connection to duckdb database.
     :param vocab_size: the size of the resulting vocabulary.
@@ -46,7 +44,6 @@ def compute_pmi_masking_vocab(db_connection: duckdb.DuckDBPyConnection, vocab_si
     validate_ngram_size_to_vocab_percent(ngram_size_to_vocab_percent)
     number_of_ngrams_per_size_in_vocab = compute_number_of_ngrams_per_size_in_vocab(ngram_size_to_vocab_percent,
                                                                                     vocab_size)
-
     vocab = []
     for ngram_size, ngrams_of_size_in_vocab in number_of_ngrams_per_size_in_vocab.items():
         vocab += compute_pmi_masking_vocab_per_ngram_size(

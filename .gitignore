@@ -3,6 +3,8 @@
 *.duckdb
 *.duckdb.wal
 *.json
+data/
+logs/
 
 # pycharm
 .idea/
