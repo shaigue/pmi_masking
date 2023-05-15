@@ -7,8 +7,14 @@ import duckdb
 from datasets import Dataset as HuggingfaceDataset
 from transformers import PreTrainedTokenizerBase
 
+import config
 
 Ngram = tuple[int, ...]
+
+
+def get_log_file():
+    log_file = config.PROJECT_ROOT / 'log.log'
+    return log_file
 
 
 def get_module_logger(name: str) -> logging.Logger:
@@ -23,9 +29,7 @@ def get_module_logger(name: str) -> logging.Logger:
 
     formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
-    logs_dir = Path(__file__).parents[1] / 'logs'
-    logs_dir.mkdir(exist_ok=True)
-    log_file = logs_dir / 'log.log'
+    log_file = get_log_file()
     file_handler = logging.FileHandler(str(log_file), mode='a')
     file_handler.setLevel(logging.INFO)
     file_handler.setFormatter(formatter)
@@ -37,6 +41,8 @@ def get_module_logger(name: str) -> logging.Logger:
     logger.addHandler(console_handler)
 
     return logger
+
+
 
 
 def get_token_field_name(token_i: int) -> str:
@@ -71,7 +77,7 @@ def get_token_fields_str(ngram_size: int) -> str:
     return ', '.join(get_token_field_name(token_i) for token_i in range(ngram_size))
 
 
-def get_total_ngrams_per_size_file(save_dir):
+def get_total_ngrams_per_size_file(save_dir: Path):
     return save_dir / 'total_ngrams_per_size.json'
 
 
@@ -120,7 +126,15 @@ def compute_number_of_ngrams_per_size_in_vocab(ngram_size_to_vocab_percent: dict
     return number_of_ngrams_of_size_in_vocab
 
 
+def get_db_path(save_dir: Path) -> Path:
+    return save_dir / 'ngram_data.duckdb'
+
+
 def open_db_connection(save_dir: Path):
-    database_file = save_dir / 'ngram_data.duckdb'
+    database_file = get_db_path(save_dir)
     db_connection = duckdb.connect(str(database_file))
     return db_connection
+
+
+def get_file_size_bytes(file: Path) -> int:
+    return file.stat().st_size

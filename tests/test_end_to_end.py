@@ -7,9 +7,9 @@ import duckdb
 
 from src import fields
 from src.naive_implementation import run_pipeline_naive_with_parameters
-from src.run_pipeline import run_pipeline_with_parameters
+from src.run_pipeline import run_pipeline_with_experiment_config
 from src.utils import read_total_ngrams_per_size, open_db_connection, Ngram, get_ngram_table_name, get_token_fields_str
-import experiment_parameters.end_to_end_test_parameters as parameters
+import experiment_config.end_to_end_test as parameters
 
 
 class MyTestCase(unittest.TestCase):
@@ -47,7 +47,7 @@ class MyTestCase(unittest.TestCase):
         self.assertDictAlmostEqual(naive_result[column], db_result)
 
     def test_end_to_end(self):
-        pmi_masking_vocab_db = run_pipeline_with_parameters(parameters)
+        pmi_masking_vocab_db = run_pipeline_with_experiment_config(parameters)
         naive_result = run_pipeline_naive_with_parameters(parameters)
 
         total_ngrams_per_size_db = read_total_ngrams_per_size(parameters.save_dir)

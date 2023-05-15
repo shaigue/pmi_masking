@@ -53,8 +53,7 @@ class MyTestCase(unittest.TestCase):
             (0, 2, 0): 4,
         })
         ngram_size = 3
-        filter_ngram_count_threshold = 1
-        result = convert_ngram_counter_to_pa_table(counter, ngram_size, filter_ngram_count_threshold)
+        result = convert_ngram_counter_to_pa_table(counter, ngram_size)
         expected = pa.table(
             data={
                 get_token_field_name(0): [1, 1, 1, 0, 1, 0],

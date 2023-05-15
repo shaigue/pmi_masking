@@ -58,7 +58,7 @@ def aggregate_batch_ngram_counts(save_dir: Path, max_ngram_size: int,
         logger.info(f'aggregating ngrams of size {ngram_size}')
 
         create_table_query = get_create_table_query(ngram_size)
-        logger.info(f'creating new table. executing query:\n{create_table_query}')
+        logger.info(f'creating new table. executing query: {create_table_query}')
         db_connection.execute(create_table_query)
 
         ngram_size_dir = save_dir / str(ngram_size)
@@ -70,7 +70,7 @@ def aggregate_batch_ngram_counts(save_dir: Path, max_ngram_size: int,
                 ngram_size,
                 'table_to_insert'
             )
-            logger.info(f'merging file {parquet_file} into table - start. executing query:\n{merge_and_add_query}')
+            logger.info(f'merging file {parquet_file} into table - start. executing query: {merge_and_add_query}')
             db_connection.execute(merge_and_add_query)
             logger.info(f'merging file {parquet_file} into table - end')
 

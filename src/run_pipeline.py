@@ -8,12 +8,14 @@ from src.compute_pmi_masking_vocab import compute_pmi_masking_vocab
 from src.compute_pmi_score import compute_pmi_score
 from src.count_ngrams_in_batches import count_ngrams_in_batches
 from src.load_dataset import load_bookcorpus_dataset
-from src.utils import read_total_ngrams_per_size, open_db_connection
-
+from src.utils import read_total_ngrams_per_size, open_db_connection, get_module_logger, get_file_size_bytes, \
+    get_db_path
 
 # TODO: add checkpoints? so we can resume if we were interrupted?
 # TODO: I probably want to create some progress bar or something.
 #  Running this on a very large dataset can take a week... I might want to give some information on the progress.
+logger = get_module_logger(__name__)
+
 
 def run_pipeline(max_ngram_size: int, min_count_threshold: int, vocab_size: int,
                  ngram_size_to_vocab_percent: dict[int, float], n_samples: int, ngram_count_batch_size: int,
@@ -39,29 +41,37 @@ def run_pipeline(max_ngram_size: int, min_count_threshold: int, vocab_size: int,
     compute_log_likelihood(db_connection, total_ngrams_per_size)
     compute_max_segmentation_log_likelihood_sum(db_connection, max_ngram_size)
     compute_pmi_score(db_connection, max_ngram_size)
+
     pmi_masking_vocab = compute_pmi_masking_vocab(db_connection, vocab_size, min_count_threshold,
                                                   ngram_size_to_vocab_percent)
 
     db_connection.close()
-    # TODO: do I want to delete all the data and just return the vocab?
+    db_size_bytes = get_file_size_bytes(get_db_path(save_dir))
+    logger.info(f'db_size_bytes: {db_size_bytes}')
 
+    # TODO: do I want to delete all the data and just return the vocab?
+    # TODO: clean up the files?
     return pmi_masking_vocab
 
 
-def run_pipeline_with_parameters(parameters):
-    return run_pipeline(
-        max_ngram_size=parameters.max_ngram_size,
-        min_count_threshold=parameters.min_count_threshold,
-        vocab_size=parameters.vocab_size,
-        ngram_size_to_vocab_percent=parameters.ngram_size_to_vocab_percent,
-        n_samples=parameters.n_samples,
-        ngram_count_batch_size=parameters.ngram_count_batch_size,
-        n_workers=parameters.n_workers,
-        filter_ngram_count_threshold=parameters.filter_ngram_count_threshold,
-        save_dir=parameters.save_dir,
+def run_pipeline_with_experiment_config(experiment_config):
+    logger.info(f'start experiment_config: {experiment_config.__name__}')
+    pmi_masking_vocab = run_pipeline(
+        max_ngram_size=experiment_config.max_ngram_size,
+        min_count_threshold=experiment_config.min_count_threshold,
+        vocab_size=experiment_config.vocab_size,
+        ngram_size_to_vocab_percent=experiment_config.ngram_size_to_vocab_percent,
+        n_samples=experiment_config.n_samples,
+        ngram_count_batch_size=experiment_config.ngram_count_batch_size,
+        n_workers=experiment_config.n_workers,
+        filter_ngram_count_threshold=experiment_config.filter_ngram_count_threshold,
+        save_dir=experiment_config.save_dir,
     )
+    logger.info(f'end experiment_config: {experiment_config.__name__}')
+    # TODO: save the vocab to a file (in the previous function?)
+    return pmi_masking_vocab
 
 
 if __name__ == '__main__':
-    from experiment_parameters import medium_size_bookcorpus_parameters
-    run_pipeline_with_parameters(medium_size_bookcorpus_parameters)
+    from experiment_config import medium_size_bookcorpus
+    run_pipeline_with_experiment_config(medium_size_bookcorpus)
