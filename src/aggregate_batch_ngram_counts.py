@@ -73,9 +73,12 @@ def aggregate_batch_ngram_counts(save_dir: Path, max_ngram_size: int,
             logger.info(f'merging file {parquet_file} into table - start. executing query: {merge_and_add_query}')
             db_connection.execute(merge_and_add_query)
             logger.info(f'merging file {parquet_file} into table - end')
+            parquet_file.unlink()
 
             # record the size of the table
             table_size = len(db_connection.sql(f'SELECT * FROM {get_ngram_table_name(ngram_size)}'))
             logger.info(f'table size: {table_size}')
+
+        ngram_size_dir.rmdir()
 
     logger.info('aggregate batch ngram counts - end')

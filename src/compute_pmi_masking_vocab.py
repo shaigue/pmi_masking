@@ -18,23 +18,20 @@ from src.utils import validate_ngram_size_to_vocab_percent, compute_number_of_ng
 
 
 def compute_pmi_masking_vocab_per_ngram_size(db_connection: duckdb.DuckDBPyConnection, ngram_size: int,
-                                             min_count_threshold: int, ngrams_of_size_in_vocab: int) -> list[Ngram]:
+                                             ngrams_of_size_in_vocab: int) -> list[Ngram]:
     token_fields_str = get_token_fields_str(ngram_size)
     table_name = get_ngram_table_name(ngram_size)
     query = f'SELECT {token_fields_str} FROM {table_name} ' \
-            f'WHERE count >= {min_count_threshold} ' \
             f'ORDER BY {fields.PMI_SCORE} DESC ' \
             f'LIMIT {ngrams_of_size_in_vocab}'
     return db_connection.sql(query).fetchall()
 
 
-def compute_pmi_masking_vocab(db_connection: duckdb.DuckDBPyConnection, vocab_size: int, min_count_threshold: int,
+def compute_pmi_masking_vocab(db_connection: duckdb.DuckDBPyConnection, vocab_size: int,
                               ngram_size_to_vocab_percent: dict[int, float]) -> list[Ngram]:
     """Computes the pmi masking vocabulary.
     :param db_connection: an open read/write connection to duckdb database.
     :param vocab_size: the size of the resulting vocabulary.
-    :param min_count_threshold: ngrams that occur less than this value will be filtered out, and not included in the
-        final vocabulary.
     :param ngram_size_to_vocab_percent: dictionary mapping ngrams size to the percentage of ngrams of that size in the
         resulting vocabulary.
         for example, ngram_size_to_vocab_percent={2: 30, 3: 30, 4:40} means that the resulting vocabulary will be 30%
@@ -49,7 +46,6 @@ def compute_pmi_masking_vocab(db_connection: duckdb.DuckDBPyConnection, vocab_si
         vocab += compute_pmi_masking_vocab_per_ngram_size(
             db_connection,
             ngram_size,
-            min_count_threshold,
             ngrams_of_size_in_vocab,
         )
     return vocab

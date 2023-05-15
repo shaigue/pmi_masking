@@ -7,6 +7,7 @@ from src.compute_max_segmentation_log_likelihood_sum import compute_max_segmenta
 from src.compute_pmi_masking_vocab import compute_pmi_masking_vocab
 from src.compute_pmi_score import compute_pmi_score
 from src.count_ngrams_in_batches import count_ngrams_in_batches
+from src.delete_low_count_ngrams import delete_low_count_ngrams
 from src.load_dataset import load_bookcorpus_dataset
 from src.utils import read_total_ngrams_per_size, open_db_connection, get_module_logger, get_file_size_bytes, \
     get_db_path
@@ -37,20 +38,20 @@ def run_pipeline(max_ngram_size: int, min_count_threshold: int, vocab_size: int,
         filter_ngram_count_threshold=filter_ngram_count_threshold,
     )
     aggregate_batch_ngram_counts(save_dir, max_ngram_size, db_connection)
+    delete_low_count_ngrams(max_ngram_size, db_connection, min_count_threshold)
     total_ngrams_per_size = read_total_ngrams_per_size(save_dir)
     compute_log_likelihood(db_connection, total_ngrams_per_size)
     compute_max_segmentation_log_likelihood_sum(db_connection, max_ngram_size)
     compute_pmi_score(db_connection, max_ngram_size)
 
-    pmi_masking_vocab = compute_pmi_masking_vocab(db_connection, vocab_size, min_count_threshold,
-                                                  ngram_size_to_vocab_percent)
+    pmi_masking_vocab = compute_pmi_masking_vocab(db_connection, vocab_size, ngram_size_to_vocab_percent)
 
     db_connection.close()
     db_size_bytes = get_file_size_bytes(get_db_path(save_dir))
     logger.info(f'db_size_bytes: {db_size_bytes}')
 
     # TODO: do I want to delete all the data and just return the vocab?
-    # TODO: clean up the files?
+    # TODO: clean up the db_file? if I do that, I will not be able to run the end_to_end_test. maybe add a flag for doing that.
     return pmi_masking_vocab
 
 

@@ -153,15 +153,11 @@ def compute_pmi_score(ngram_to_log_likelihood: dict[Ngram, float],
     return ngram_to_pmi_score
 
 
-def compute_pmi_masking_vocab(ngram_to_count: dict[Ngram, int], ngram_to_pmi_score: dict[Ngram, float],
-                              vocab_size: int, min_count_threshold: int,
+def compute_pmi_masking_vocab(ngram_to_pmi_score: dict[Ngram, float], vocab_size: int,
                               ngram_size_to_vocab_percent: dict[int, int]) -> list[Ngram]:
     """Computes the pmi masking vocabulary.
-    :param ngram_to_count: dictionary mapping ngrams to their counts
     :param ngram_to_pmi_score: dictionary mapping ngrams to their pmi scores
     :param vocab_size: the size of the resulting vocabulary.
-    :param min_count_threshold: ngrams that occur less than this value will be filtered out, and not included in the
-        final vocabulary.
     :param ngram_size_to_vocab_percent: dictionary mapping ngrams size to the percentage of ngrams of that size in the
         resulting vocabulary.
         for example, ngram_size_to_vocab_percent={2: 30, 3: 30, 4:40} means that the resulting vocabulary will be 30%
@@ -172,11 +168,10 @@ def compute_pmi_masking_vocab(ngram_to_count: dict[Ngram, int], ngram_to_pmi_sco
     number_of_ngrams_per_size_in_vocab = compute_number_of_ngrams_per_size_in_vocab(ngram_size_to_vocab_percent,
                                                                                     vocab_size)
 
-    # split ngrams according to size and filter those who do not exceed the minimal count threshold
+    # split ngrams by size
     ngrams_list_by_size = defaultdict(list)
-    for ngram, ngram_count in ngram_to_count.items():
-        if len(ngram) > 1 and ngram_count >= min_count_threshold:
-            ngrams_list_by_size[len(ngram)].append(ngram)
+    for ngram in ngram_to_pmi_score.keys():
+        ngrams_list_by_size[len(ngram)].append(ngram)
 
     # sort according to pmi scores in descending order
     for ngrams_list in ngrams_list_by_size.values():
@@ -205,14 +200,13 @@ def run_pipeline_naive(n_samples: int, max_ngram_size: int, vocab_size: int,
     tokenized_samples = dataset['input_ids']
     total_ngrams_per_size = count_total_ngrams_per_size(tokenized_samples, max_ngram_size)
     ngram_to_count = count_ngrams(tokenized_samples, max_ngram_size)
+    ngram_to_count = {ngram: count for ngram, count in ngram_to_count.items() if count >= min_count_threshold}
     ngram_to_log_likelihood = compute_log_likelihood(ngram_to_count, total_ngrams_per_size)
     ngram_to_max_segmentation_log_likelihood_sum = compute_max_segmentation_log_likelihood_sum(ngram_to_log_likelihood)
     ngram_to_pmi_score = compute_pmi_score(ngram_to_log_likelihood, ngram_to_max_segmentation_log_likelihood_sum)
     pmi_masking_vocab = compute_pmi_masking_vocab(
-        ngram_to_count,
         ngram_to_pmi_score,
         vocab_size,
-        min_count_threshold,
         ngram_size_to_vocab_percent,
     )
     return {
