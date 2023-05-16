@@ -1,29 +1,14 @@
 """Module that extracts required information from the logs"""
 import datetime
-from collections.abc import Callable
-import math
 import json
 import re
+from collections.abc import Callable
 from typing import Any
 
-from config import PROJECT_ROOT
 from src.utils import get_log_file
 
-# TODO: maybe use a configuration file for the 'run_pipline' file, and use it both for running and scalability analysis
-# TODO: this thing should be tested?
 
-ngram_count_batch_size = 1_000_000
-n_samples = 30_000_000
-n_workers = 3
-max_ngram_size = 5
-filter_ngram_count_threshold = 2
-save_dir = PROJECT_ROOT / 'data'
-total_ngram_per_size_file = save_dir / 'total_ngrams_per_size.json'
-N_TOKENS_WIKIPEDIA = 24_000_000_000         # 24 Billion
-N_TOKENS_RED_PAJAMA = 1_200_000_000_000     # 1.2 Trillion
-
-
-datetime_format = '%Y-%m-%d %H:%M:%S'
+# TODO: Another thing that i might want to do is to first parse the values, and then do the processing.
 
 
 def get_n_tokens_processed() -> int:
@@ -31,7 +16,6 @@ def get_n_tokens_processed() -> int:
         total_ngram_per_size = json.load(f)
     return total_ngram_per_size['1']
 
-# TODO: Another thing that i might want to do is to first parse the values, and then do the processing.
 
 
 def get_last_index(lines: list[str], condition: Callable[[str], bool]) -> int:
@@ -59,29 +43,14 @@ def slice_lines(lines: list[str], start_condition: Callable[[str], bool],
     return slice_dict
 
 
-def get_line_datetime(line: str) -> datetime.datetime:
-    time_str = log_line_regex.match(line).group('datetime')
-    return datetime.datetime.strptime(time_str, datetime_format)
+# ==== recreated version ====
 
-
-def get_lines_timedelta_seconds(line1: str, line2: str) -> int:
-    return (get_line_datetime(line2) - get_line_datetime(line1)).seconds
-
-
-def extrapolate_time_n_log_n(actual_n: int, expected_n: int, actual_time: int):
-    constant = actual_time / (actual_n * math.log2(actual_n))
-    return constant * (expected_n * math.log2(expected_n))
-
-
-def seconds_to_hours(seconds: int) -> float:
+def seconds_to_hours(seconds: float) -> float:
     return seconds / 3_600
 
 
-def seconds_to_days(seconds: int) -> float:
+def seconds_to_days(seconds: float) -> float:
     return seconds_to_hours(seconds) / 24
-
-
-# ==== recreated version ====
 
 
 def read_log_lines() -> list[str]:
@@ -94,7 +63,7 @@ def read_log_lines() -> list[str]:
 
 def parse_log_line(line: str) -> dict[str, str]:
     datetime_regex = r'\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}'
-    module_name_regex = r'\w+\.\w+'
+    module_name_regex = r'[\w.]+'
     level_regex = r'\w+'
     message_regex = r'.*'
     log_line_regex = f'(?P<datetime>{datetime_regex}),\\d+ - ' \
@@ -137,6 +106,19 @@ def parse_matching_messages(parsed_lines: list[dict[str, str]], regex: re.Patter
     return [match_object.groupdict() for match_object in match_objects if match_object is not None]
 
 
+def get_parsed_line_datetime(parsed_line: dict[str, str]) -> datetime.datetime:
+    datetime_format = '%Y-%m-%d %H:%M:%S'
+    time_str = parsed_line['datetime']
+    return datetime.datetime.strptime(time_str, datetime_format)
+
+
+def get_parsed_lines_timediff_seconds(parsed_line1: dict[str, str], parsed_line2: dict[str, str]) -> int:
+    datetime1 = get_parsed_line_datetime(parsed_line1)
+    datetime2 = get_parsed_line_datetime(parsed_line2)
+    delta = datetime2 - datetime1
+    return delta.seconds
+
+
 def extract_experiment_information_from_logs(experiment_name: str) -> dict:
     log_lines = read_log_lines()
     parsed_log_lines = parse_log_lines(log_lines)
@@ -147,6 +129,9 @@ def extract_experiment_information_from_logs(experiment_name: str) -> dict:
     end_experiment_condition = get_regex_match_condition(end_experiment_regex, 'message')
     experiment_lines = slice_by_start_end_condition(parsed_log_lines, start_experiment_condition,
                                                     end_experiment_condition)[-1]
+
+    # find the total time. take the time of the last line and subtract the time of the first line
+    total_time_seconds = get_parsed_lines_timediff_seconds(experiment_lines[0], experiment_lines[-1])
 
     # find the number of tokens processed
     n_tokens_regex = re.compile(r'n_tokens: (?P<n_tokens>\d+)')
@@ -176,6 +161,7 @@ def extract_experiment_information_from_logs(experiment_name: str) -> dict:
         'n_tokens': n_tokens,
         'total_batch_ngram_counter_files_size': total_batch_ngram_counter_files_size,
         'db_file_size_after_pmi_score_compute': db_file_size_after_pmi_score_compute,
+        'total_time_seconds': total_time_seconds
     }
 
 
