@@ -1,6 +1,7 @@
 import shutil
 from pathlib import Path
 
+import config
 from src.compute_log_likelihood import compute_log_likelihood
 from src.aggregate_batch_ngram_counts import aggregate_batch_ngram_counts
 from src.compute_max_segmentation_log_likelihood_sum import compute_max_segmentation_log_likelihood_sum
@@ -10,25 +11,23 @@ from src.count_ngrams_in_batches import count_ngrams_in_batches
 from src.delete_low_count_ngrams import delete_low_count_ngrams
 from src.load_dataset import load_bookcorpus_dataset
 from src.utils import read_total_ngrams_per_size, open_db_connection, get_module_logger, get_file_size_bytes, \
-    get_db_path
+    get_db_path, Ngram
 
-# TODO: add checkpoints? so we can resume if we were interrupted?
-# TODO: I probably want to create some progress bar or something.
-#  Running this on a very large dataset can take a week... I might want to give some information on the progress.
 logger = get_module_logger(__name__)
 
 
 def run_pipeline(max_ngram_size: int, min_count_threshold: int, vocab_size: int,
-                 ngram_size_to_vocab_percent: dict[int, float], n_samples: int, ngram_count_batch_size: int,
-                 n_workers: int, filter_ngram_count_threshold: int, save_dir: Path):
-    # TODO: make n_samples optional
-    # TODO: make n_workers optional. can pass to all functions None, and the value will be determined in the lowest
-    #   possible level
+                 ngram_size_to_vocab_percent: dict[int, float], ngram_count_batch_size: int,
+                 filter_ngram_count_threshold: int, save_dir: Path, n_workers: int = None, n_samples: int = None,
+                 **kwargs) -> list[Ngram]:
+    # TODO: make this work with various datasets. currently only works for bookcorpus.
+    # TODO: add checkpoints? so we can resume if we were interrupted?
+    # TODO: add some way to show progress. running this on a large dataset can take a lot of time.
     shutil.rmtree(save_dir, ignore_errors=True)
     save_dir.mkdir(exist_ok=True)
     db_connection = open_db_connection(save_dir)
 
-    dataset = load_bookcorpus_dataset(n_samples, n_workers=n_workers)
+    dataset = load_bookcorpus_dataset(n_samples=n_samples, n_workers=n_workers)
     count_ngrams_in_batches(
         tokenized_dataset=dataset,
         save_dir=save_dir,
@@ -50,26 +49,27 @@ def run_pipeline(max_ngram_size: int, min_count_threshold: int, vocab_size: int,
     db_size_bytes = get_file_size_bytes(get_db_path(save_dir))
     logger.info(f'db_size_bytes: {db_size_bytes}')
 
-    # TODO: do I want to delete all the data and just return the vocab?
-    # TODO: clean up the db_file? if I do that, I will not be able to run the end_to_end_test. maybe add a flag for doing that.
     return pmi_masking_vocab
 
 
-def run_pipeline_with_experiment_config(experiment_config):
-    logger.info(f'start experiment_config: {experiment_config.__name__}')
-    pmi_masking_vocab = run_pipeline(
-        max_ngram_size=experiment_config.max_ngram_size,
-        min_count_threshold=experiment_config.min_count_threshold,
-        vocab_size=experiment_config.vocab_size,
-        ngram_size_to_vocab_percent=experiment_config.ngram_size_to_vocab_percent,
-        n_samples=experiment_config.n_samples,
-        ngram_count_batch_size=experiment_config.ngram_count_batch_size,
-        n_workers=experiment_config.n_workers,
-        filter_ngram_count_threshold=experiment_config.filter_ngram_count_threshold,
-        save_dir=experiment_config.save_dir,
-    )
-    logger.info(f'end experiment_config: {experiment_config.__name__}')
-    # TODO: save the vocab to a file (in the previous function?)
+def get_experiment_name(experiment_config):
+    return experiment_config.__name__.split('.')[-1]
+
+
+def get_save_dir(experiment_name: str):
+    return config.DATA_DIR / experiment_name
+
+
+def run_pipeline_with_experiment_config(experiment_config, clean_up: bool = True):
+    # TODO: make sure to update the run_pipeline_naive version
+    # TODO: maybe save the pmi_masking_vocabulary to a file in the end?
+    experiment_name = get_experiment_name(experiment_config)
+    save_dir = get_save_dir(experiment_name)
+    logger.info(f'start experiment_config: {experiment_name}')
+    pmi_masking_vocab = run_pipeline(save_dir=save_dir, **experiment_config.__dict__)
+    logger.info(f'end experiment_config: {experiment_name}')
+    if clean_up:
+        shutil.rmtree(save_dir, ignore_errors=True)
     return pmi_masking_vocab
 
 

@@ -1,56 +1,10 @@
 """Module that extracts required information from the logs"""
 import datetime
-import json
 import re
 from collections.abc import Callable
 from typing import Any
 
 from src.utils import get_log_file
-
-
-# TODO: Another thing that i might want to do is to first parse the values, and then do the processing.
-
-
-def get_n_tokens_processed() -> int:
-    with total_ngram_per_size_file.open('r') as f:
-        total_ngram_per_size = json.load(f)
-    return total_ngram_per_size['1']
-
-
-
-def get_last_index(lines: list[str], condition: Callable[[str], bool]) -> int:
-    return list(get_indices_that_satisfy_condition(lines, condition))[-1]
-
-
-def get_last_slice(lines: list[str], start_condition: Callable[[str], bool]) -> list[str]:
-    last_start_index = get_last_index(lines, start_condition)
-    return lines[last_start_index:]
-
-
-def slice_lines(lines: list[str], start_condition: Callable[[str], bool],
-                start_line_to_key: Callable[[str], Any]) -> dict[Any, list[str]]:
-    slice_dict = {}
-    last_key = None
-
-    for line in lines:
-        if start_condition(line):
-            last_key = start_line_to_key(line)
-            slice_dict[last_key] = []
-
-        if last_key is not None:
-            slice_dict[last_key].append(line)
-
-    return slice_dict
-
-
-# ==== recreated version ====
-
-def seconds_to_hours(seconds: float) -> float:
-    return seconds / 3_600
-
-
-def seconds_to_days(seconds: float) -> float:
-    return seconds_to_hours(seconds) / 24
 
 
 def read_log_lines() -> list[str]:
@@ -82,8 +36,8 @@ def get_indices_that_satisfy_condition(lines: list, condition: Callable[[Any], b
     return [i for i, line in enumerate(lines) if condition(line)]
 
 
-def slice_by_start_end_condition(lines: list, start_condition: Callable[[Any], bool],
-                                 end_condition: Callable[[Any], bool]) -> list[list]:
+def slice_by_start_end_conditions(lines: list, start_condition: Callable[[Any], bool],
+                                  end_condition: Callable[[Any], bool]) -> list[list]:
     start_indices = get_indices_that_satisfy_condition(lines, start_condition)
     end_indices = get_indices_that_satisfy_condition(lines, end_condition)
     if len(start_indices) != len(end_indices):
@@ -123,12 +77,12 @@ def extract_experiment_information_from_logs(experiment_name: str) -> dict:
     log_lines = read_log_lines()
     parsed_log_lines = parse_log_lines(log_lines)
 
-    start_experiment_regex = re.compile(f'start experiment_config: experiment_config.{experiment_name}')
+    start_experiment_regex = re.compile(f'start experiment_config: {experiment_name}')
     start_experiment_condition = get_regex_match_condition(start_experiment_regex, 'message')
-    end_experiment_regex = re.compile(f'end experiment_config: experiment_config.{experiment_name}')
+    end_experiment_regex = re.compile(f'end experiment_config: {experiment_name}')
     end_experiment_condition = get_regex_match_condition(end_experiment_regex, 'message')
-    experiment_lines = slice_by_start_end_condition(parsed_log_lines, start_experiment_condition,
-                                                    end_experiment_condition)[-1]
+    experiment_lines = slice_by_start_end_conditions(parsed_log_lines, start_experiment_condition,
+                                                     end_experiment_condition)[-1]
 
     # find the total time. take the time of the last line and subtract the time of the first line
     total_time_seconds = get_parsed_lines_timediff_seconds(experiment_lines[0], experiment_lines[-1])

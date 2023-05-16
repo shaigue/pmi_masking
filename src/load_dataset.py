@@ -1,11 +1,16 @@
+import os
+
 from datasets import load_dataset, Dataset
 
 from src.get_tokenizer import get_tokenizer
-from src.utils import tokenize_dataset
+from src.utils import tokenize_dataset, get_cpu_count
 
 
-def load_bookcorpus_dataset(n_samples: int = None, tokenize: bool = True, n_workers: int = 1,
+def load_bookcorpus_dataset(n_samples: int = None, tokenize: bool = True, n_workers: int = None,
                             tokenizer_batch_size: int = 4_000) -> Dataset:
+    if n_workers is None:
+        n_workers = get_cpu_count()
+
     dataset_name = 'bookcorpus'
     split = 'train'
     dataset = load_dataset(dataset_name, split=split)

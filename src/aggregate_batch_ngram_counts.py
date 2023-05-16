@@ -53,7 +53,7 @@ def aggregate_batch_ngram_counts(save_dir: Path, max_ngram_size: int,
     :param max_ngram_size: the maximum size of ngram to consider.
     :param db_connection: a read / write connection to a duckdb database.
     """
-    logger.info('aggregate batch ngram counts - start')
+    logger.info('start')
     for ngram_size in range(1, max_ngram_size + 1):
         logger.info(f'aggregating ngrams of size {ngram_size}')
 
@@ -81,4 +81,4 @@ def aggregate_batch_ngram_counts(save_dir: Path, max_ngram_size: int,
 
         ngram_size_dir.rmdir()
 
-    logger.info('aggregate batch ngram counts - end')
+    logger.info('end')

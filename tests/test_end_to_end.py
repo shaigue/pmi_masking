@@ -7,17 +7,18 @@ import duckdb
 
 from src import fields
 from src.naive_implementation import run_pipeline_naive_with_parameters
-from src.run_pipeline import run_pipeline_with_experiment_config
+from src.run_pipeline import run_pipeline_with_experiment_config, get_experiment_name, get_save_dir
 from src.utils import read_total_ngrams_per_size, open_db_connection, Ngram, get_ngram_table_name, get_token_fields_str
 import experiment_config.end_to_end_test as parameters
 
 
 class MyTestCase(unittest.TestCase):
     def setUp(self) -> None:
-        pass
+        experiment_name = get_experiment_name(parameters)
+        self.save_dir = get_save_dir(experiment_name)
 
     def tearDown(self) -> None:
-        shutil.rmtree(parameters.save_dir, ignore_errors=True)
+        shutil.rmtree(self.save_dir, ignore_errors=True)
 
     def assertDictAlmostEqual(self, d1: dict, d2: dict):
         self.assertEqual(set(d1.keys()), set(d2.keys()))
@@ -47,13 +48,13 @@ class MyTestCase(unittest.TestCase):
         self.assertDictAlmostEqual(naive_result[column], db_result)
 
     def test_end_to_end(self):
-        pmi_masking_vocab_db = run_pipeline_with_experiment_config(parameters)
+        pmi_masking_vocab_db = run_pipeline_with_experiment_config(parameters, clean_up=False)
         naive_result = run_pipeline_naive_with_parameters(parameters)
 
-        total_ngrams_per_size_db = read_total_ngrams_per_size(parameters.save_dir)
+        total_ngrams_per_size_db = read_total_ngrams_per_size(self.save_dir)
         self.assertDictEqual(naive_result['total_ngrams_per_size'], total_ngrams_per_size_db)
 
-        db_connection = open_db_connection(parameters.save_dir)
+        db_connection = open_db_connection(self.save_dir)
         self.assertColumnEqual(naive_result, db_connection, fields.COUNT)
         self.assertColumnEqual(naive_result, db_connection, fields.LOG_LIKELIHOOD)
         self.assertColumnEqual(naive_result, db_connection, fields.MAX_SEGMENTATION_LOG_LIKELIHOOD_SUM)

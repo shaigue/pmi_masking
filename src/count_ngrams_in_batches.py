@@ -7,7 +7,6 @@ from pathlib import Path
 
 import psutil
 from datasets import Dataset as HuggingfaceDataset
-from transformers import PreTrainedTokenizerBase
 import pyarrow as pa
 import pyarrow.parquet as pq
 

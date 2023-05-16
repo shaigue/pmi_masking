@@ -4,12 +4,17 @@ from math import floor
 from pathlib import Path
 
 import duckdb
+import psutil
 from datasets import Dataset as HuggingfaceDataset
 from transformers import PreTrainedTokenizerBase
 
 import config
 
 Ngram = tuple[int, ...]
+
+
+def get_cpu_count() -> int:
+    return len(psutil.Process().cpu_affinity())
 
 
 def get_log_file():

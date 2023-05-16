@@ -196,6 +196,7 @@ def run_pipeline_naive(n_samples: int, max_ngram_size: int, vocab_size: int,
     :return: a dictionary containing the intermediate results of the pipeline, for testing the db based implementation.
     """
     # TODO: need to make this more flexible, enabling it to load different datasets. for now it does the job.
+    # TODO: make n_samples optional
     dataset = load_bookcorpus_dataset(n_samples)
     tokenized_samples = dataset['input_ids']
     total_ngrams_per_size = count_total_ngrams_per_size(tokenized_samples, max_ngram_size)
