@@ -1,7 +1,8 @@
 """This module computes the miniman segments term for the PMI scores with dynamic programming."""
 import duckdb
 
-from src.utils import get_ngram_table_name, get_token_field_name, get_module_logger
+from src.utils import get_module_logger
+from src.db_implementation.utils import get_token_field_name, get_ngram_table_name
 from src.db_implementation import fields
 
 logger = get_module_logger(__name__)

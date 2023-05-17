@@ -8,7 +8,7 @@ import duckdb
 from src.db_implementation import fields
 from src.db_implementation.compute_log_likelihood import compute_log_likelihood
 from src.db_implementation.aggregate_ngram_counts import get_create_table_query
-from src.utils import get_ngram_table_name
+from src.db_implementation.utils import get_ngram_table_name
 
 
 class MyTestCase(unittest.TestCase):

@@ -8,7 +8,9 @@ import duckdb
 from src.db_implementation import fields
 from src.naive_implementation import run_pipeline_naive_with_parameters
 from src.db_implementation.run_pipeline import run_pipeline_with_experiment_config, get_experiment_name, get_save_dir
-from src.utils import read_total_ngrams_per_size, open_db_connection, Ngram, get_ngram_table_name, get_token_fields_str
+from src.utils import Ngram
+from src.db_implementation.utils import get_ngram_table_name, get_token_fields_str, read_total_ngrams_per_size, \
+    open_db_connection
 import experiment_config.end_to_end_test as parameters
 
 

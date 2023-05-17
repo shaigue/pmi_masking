@@ -1,7 +1,7 @@
 import unittest
 
 from src.db_implementation.compute_pmi_masking_vocab import compute_pmi_masking_vocab_per_ngram_size
-from src.utils import get_ngram_table_name
+from src.db_implementation.utils import get_ngram_table_name
 from tests.duckdb_test_case import DuckDBTestCase
 
 

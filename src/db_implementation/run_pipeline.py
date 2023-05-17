@@ -10,8 +10,9 @@ from src.db_implementation.compute_pmi_score import compute_pmi_score
 from src.db_implementation.count_ngrams_in_batches import count_ngrams_in_batches
 from src.db_implementation.filter_low_count_ngrams import filter_low_count_ngrams
 from src.load_dataset import load_bookcorpus_dataset
-from src.utils import read_total_ngrams_per_size, open_db_connection, get_module_logger, get_file_size_bytes, \
-    get_db_path, Ngram
+from src.utils import get_module_logger, get_file_size_bytes, \
+    Ngram
+from src.db_implementation.utils import read_total_ngrams_per_size, get_db_path, open_db_connection
 
 logger = get_module_logger(__name__)
 
