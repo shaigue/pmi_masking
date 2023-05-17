@@ -3,12 +3,12 @@ from pathlib import Path
 
 import config
 from src.compute_log_likelihood import compute_log_likelihood
-from src.aggregate_batch_ngram_counts import aggregate_batch_ngram_counts
+from src.aggregate_ngram_counts import aggregate_ngram_counts
 from src.compute_max_segmentation_log_likelihood_sum import compute_max_segmentation_log_likelihood_sum
 from src.compute_pmi_masking_vocab import compute_pmi_masking_vocab
 from src.compute_pmi_score import compute_pmi_score
 from src.count_ngrams_in_batches import count_ngrams_in_batches
-from src.delete_low_count_ngrams import delete_low_count_ngrams
+from src.filter_low_count_ngrams import filter_low_count_ngrams
 from src.load_dataset import load_bookcorpus_dataset
 from src.utils import read_total_ngrams_per_size, open_db_connection, get_module_logger, get_file_size_bytes, \
     get_db_path, Ngram
@@ -36,8 +36,13 @@ def run_pipeline(max_ngram_size: int, min_count_threshold: int, vocab_size: int,
         max_ngram_size=max_ngram_size,
         filter_ngram_count_threshold=filter_ngram_count_threshold,
     )
-    aggregate_batch_ngram_counts(save_dir, max_ngram_size, db_connection)
-    delete_low_count_ngrams(max_ngram_size, db_connection, min_count_threshold)
+    aggregate_ngram_counts(save_dir, max_ngram_size, db_connection)
+
+    db_connection.commit()
+    db_size_bytes = get_file_size_bytes(get_db_path(save_dir))
+    logger.info(f'db size bytes after aggregate counts: {db_size_bytes}')
+
+    filter_low_count_ngrams(max_ngram_size, db_connection, min_count_threshold)
     total_ngrams_per_size = read_total_ngrams_per_size(save_dir)
     compute_log_likelihood(db_connection, total_ngrams_per_size)
     compute_max_segmentation_log_likelihood_sum(db_connection, max_ngram_size)
@@ -47,7 +52,7 @@ def run_pipeline(max_ngram_size: int, min_count_threshold: int, vocab_size: int,
 
     db_connection.close()
     db_size_bytes = get_file_size_bytes(get_db_path(save_dir))
-    logger.info(f'db_size_bytes: {db_size_bytes}')
+    logger.info(f'db size bytes after pmi compute: {db_size_bytes}')
 
     return pmi_masking_vocab
 
@@ -74,5 +79,7 @@ def run_pipeline_with_experiment_config(experiment_config, clean_up: bool = True
 
 
 if __name__ == '__main__':
-    from experiment_config import medium_size_bookcorpus
-    run_pipeline_with_experiment_config(medium_size_bookcorpus)
+    # from experiment_config import medium_size_bookcorpus
+    # run_pipeline_with_experiment_config(medium_size_bookcorpus)
+    from experiment_config import bookcorpus
+    run_pipeline_with_experiment_config(bookcorpus)

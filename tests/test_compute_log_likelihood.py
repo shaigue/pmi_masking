@@ -7,7 +7,7 @@ import duckdb
 
 from src import fields
 from src.compute_log_likelihood import compute_log_likelihood
-from src.aggregate_batch_ngram_counts import get_create_table_query
+from src.aggregate_ngram_counts import get_create_table_query
 from src.utils import get_ngram_table_name
 
 

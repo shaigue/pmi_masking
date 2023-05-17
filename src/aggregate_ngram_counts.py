@@ -43,8 +43,8 @@ def get_merge_and_add_counts_query(ngram_size: int, table_to_insert: str) -> str
     return insert_query
 
 
-def aggregate_batch_ngram_counts(save_dir: Path, max_ngram_size: int,
-                                 db_connection: duckdb.DuckDBPyConnection) -> None:
+def aggregate_ngram_counts(save_dir: Path, max_ngram_size: int,
+                           db_connection: duckdb.DuckDBPyConnection) -> None:
     """Collects all the batch counts from `save_dir` and aggregates them to a single database.
     each ngram size gets a separate table.
     :param save_dir: the directory where the ngram counts where saved. expects this

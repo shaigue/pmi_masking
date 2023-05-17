@@ -6,7 +6,7 @@ from src.utils import get_ngram_table_name, get_module_logger
 logger = get_module_logger(__name__)
 
 
-def delete_low_count_ngrams(max_ngram_size: int, db_connection: duckdb.DuckDBPyConnection,
+def filter_low_count_ngrams(max_ngram_size: int, db_connection: duckdb.DuckDBPyConnection,
                             min_count_threshold: int) -> None:
     logger.info('start')
     for ngram_size in range(1, max_ngram_size + 1):

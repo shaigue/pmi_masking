@@ -40,9 +40,19 @@ def slice_by_start_end_conditions(lines: list, start_condition: Callable[[Any], 
                                   end_condition: Callable[[Any], bool]) -> list[list]:
     start_indices = get_indices_that_satisfy_condition(lines, start_condition)
     end_indices = get_indices_that_satisfy_condition(lines, end_condition)
-    if len(start_indices) != len(end_indices):
+    if len(start_indices) < len(end_indices):
         raise RuntimeError(f'found {len(start_indices)} lines satisfying the start condition and {len(end_indices)} '
-                           f'satisfying the end condition.')
+                           f'satisfying the end condition. there cannot be more starts than ends.')
+
+    if len(start_indices) > len(end_indices):
+        # there might have been starts that have not finished.
+        # match each end with the closest start (the maximal start that comes before it.)
+        new_start_indices = []
+        for end_i in end_indices:
+            matching_start_i = max(start_i for start_i in start_indices if start_i < end_i)
+            new_start_indices.append(matching_start_i)
+        start_indices = new_start_indices
+
     if any(start_i >= end_i for start_i, end_i in zip(start_indices, end_indices)):
         raise RuntimeError('found start condition after end condition.')
 
@@ -77,9 +87,9 @@ def extract_experiment_information_from_logs(experiment_name: str) -> dict:
     log_lines = read_log_lines()
     parsed_log_lines = parse_log_lines(log_lines)
 
-    start_experiment_regex = re.compile(f'start experiment_config: {experiment_name}')
+    start_experiment_regex = re.compile(f'start experiment_config: (\\w+\\.)?{experiment_name}')
     start_experiment_condition = get_regex_match_condition(start_experiment_regex, 'message')
-    end_experiment_regex = re.compile(f'end experiment_config: {experiment_name}')
+    end_experiment_regex = re.compile(f'end experiment_config: (\\w+\\.)?{experiment_name}')
     end_experiment_condition = get_regex_match_condition(end_experiment_regex, 'message')
     experiment_lines = slice_by_start_end_conditions(parsed_log_lines, start_experiment_condition,
                                                      end_experiment_condition)[-1]
@@ -104,17 +114,29 @@ def extract_experiment_information_from_logs(experiment_name: str) -> dict:
                                                for batch_info in parsed_batch_info_messages]
     total_batch_ngram_counter_files_size = sum(batch_ngram_counts_file_size_bytes_list)
 
-    # find the line f'db_size_bytes: {db_size_bytes}' and save the value
-    db_size_regex = re.compile(r'db_size_bytes: (?P<db_size_bytes>\d+)')
-    db_size_lines = parse_matching_messages(experiment_lines, db_size_regex)
-    if len(db_size_lines) != 1:
-        raise RuntimeError(f'There are {len(db_size_lines)} matches. there should be exactly 1.')
-    db_file_size_after_pmi_score_compute = int(db_size_lines[0]['db_size_bytes'])
+    db_size_after_pmi_compute_regex = re.compile(r'db size bytes after pmi compute: (?P<db_size_bytes>\d+)')
+    db_size_after_pmi_compute_lines = parse_matching_messages(experiment_lines, db_size_after_pmi_compute_regex)
+    if len(db_size_after_pmi_compute_lines) != 1:
+        raise RuntimeError(f'There are {len(db_size_after_pmi_compute_lines)} matches. there should be exactly 1.')
+    db_size_after_pmi_score_compute = int(db_size_after_pmi_compute_lines[0]['db_size_bytes'])
+
+    db_size_bytes_after_aggregate_counts_regex = re.compile(
+        r'db size bytes after aggregate counts: (?P<db_size_bytes>\d+)'
+    )
+    db_size_bytes_after_aggregate_counts_lines = parse_matching_messages(
+        experiment_lines,
+        db_size_bytes_after_aggregate_counts_regex
+    )
+    if len(db_size_bytes_after_aggregate_counts_lines) != 1:
+        raise RuntimeError(f'There are {len(db_size_bytes_after_aggregate_counts_lines)} matches. '
+                           f'there should be exactly 1.')
+    db_size_bytes_after_aggregate_counts = int(db_size_bytes_after_aggregate_counts_lines[0]['db_size_bytes'])
 
     return {
         'n_tokens': n_tokens,
         'total_batch_ngram_counter_files_size': total_batch_ngram_counter_files_size,
-        'db_file_size_after_pmi_score_compute': db_file_size_after_pmi_score_compute,
+        'db_size_after_pmi_score_compute': db_size_after_pmi_score_compute,
+        'db_size_bytes_after_aggregate_counts': db_size_bytes_after_aggregate_counts,
         'total_time_seconds': total_time_seconds
     }
 

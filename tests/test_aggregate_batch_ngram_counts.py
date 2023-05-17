@@ -4,7 +4,7 @@ import duckdb
 import pyarrow as pa
 
 from src import fields
-from src.aggregate_batch_ngram_counts import get_create_table_query, get_merge_and_add_counts_query
+from src.aggregate_ngram_counts import get_create_table_query, get_merge_and_add_counts_query
 from src.utils import get_ngram_table_name, get_token_field_name
 
 
