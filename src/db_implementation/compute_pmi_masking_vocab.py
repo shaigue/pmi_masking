@@ -10,6 +10,7 @@ logger = get_module_logger(__name__)
 
 def compute_pmi_masking_vocab_per_ngram_size(db_connection: duckdb.DuckDBPyConnection, ngram_size: int,
                                              ngrams_of_size_in_vocab: int) -> list[Ngram]:
+    """Takes `ngrams_of_size_in_vocab` with the highest `pmi_score` of the ngrams of size `ngram_size`."""
     token_fields_str = get_token_fields_str(ngram_size)
     table_name = get_ngram_table_name(ngram_size)
     query = f'SELECT {token_fields_str} FROM {table_name} ' \

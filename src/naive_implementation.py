@@ -5,7 +5,8 @@ from typing import Iterable
 
 from src.db_implementation import fields
 from src.load_dataset import load_bookcorpus_dataset
-from src.utils import Ngram, validate_ngram_size_to_vocab_percent, compute_number_of_ngrams_per_size_in_vocab
+from src.utils import Ngram, validate_ngram_size_to_vocab_percent, compute_number_of_ngrams_per_size_in_vocab, \
+    prune_low_count_ngrams
 
 
 # TODO: let zach code review this.
@@ -199,7 +200,7 @@ def run_pipeline_naive(n_samples: int, max_ngram_size: int, vocab_size: int,
     tokenized_samples = dataset['input_ids']
     total_ngrams_per_size = count_total_ngrams_per_size(tokenized_samples, max_ngram_size)
     ngram_to_count = count_ngrams(tokenized_samples, max_ngram_size)
-    ngram_to_count = {ngram: count for ngram, count in ngram_to_count.items() if count >= min_count_threshold}
+    ngram_to_count = prune_low_count_ngrams(ngram_to_count, min_count_threshold)
     ngram_to_log_likelihood = compute_log_likelihood(ngram_to_count, total_ngrams_per_size)
     ngram_to_max_segmentation_log_likelihood_sum = compute_max_segmentation_log_likelihood_sum(ngram_to_log_likelihood)
     ngram_to_pmi_score = compute_pmi_score(ngram_to_log_likelihood, ngram_to_max_segmentation_log_likelihood_sum)

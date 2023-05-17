@@ -1,33 +1,22 @@
-"""Collecting counts from chunks"""
+"""Collecting counts from batches"""
 import json
 import os
-import sys
 from collections import Counter
 from pathlib import Path
 
-import psutil
 from datasets import Dataset as HuggingfaceDataset
 import pyarrow as pa
 import pyarrow.parquet as pq
 
 from src.db_implementation import fields
-from src.utils import get_module_logger, Ngram
+from src.utils import get_module_logger, Ngram, get_memory_stats_str, prune_low_count_ngrams, get_file_size_bytes, \
+    recursive_total_size_bytes, space_str
 from src.db_implementation.utils import get_token_field_names, get_total_ngrams_per_size_file
 
-MEGA = 2 ** 20
 logger = get_module_logger(__name__)
 
 
-def get_memory_stats_mb() -> dict:
-    mem = psutil.virtual_memory()
-    return {
-        'total': mem.total // MEGA,
-        'used': mem.used // MEGA,
-        'available': mem.available // MEGA
-    }
-
-
-def count_ngrams_in_batch(batch: list[list[int]], max_ngram_size: int) -> dict[int, Counter[tuple[int, ...], int]]:
+def count_ngrams_in_batch(batch: list[list[int]], max_ngram_size: int) -> dict[int, Counter[Ngram, int]]:
     """Counts how many times each ngram appears in the batch.
     :param batch: a list of token sequences.
     :param max_ngram_size: the maximum size of ngrams to consider.
@@ -63,20 +52,10 @@ def count_total_ngrams_of_size(dataset: HuggingfaceDataset, max_ngram_size: int)
     :param max_ngram_size: the maximal ngram size to be counted.
     :returns: a dictionary mapping ngram size to the total number of ngrams of that size.
     """
-    # TODO: will this work when the dataset is larger than memory? I'm not sure. need to test that.
-    #   if so we might need to chunk it and aggregate over the chunks
+    # TODO: will this work when the dataset is larger than memory? Need to test that.
+    #  if not, we need to split into batches and aggregate.
     input_ids = dataset.data.column('input_ids')
     return count_total_ngrams_of_size_(input_ids, max_ngram_size)
-
-
-def prune_ngrams(ngram_counter: dict[tuple[int, ...], int], filter_ngram_count_threshold: int) -> dict[Ngram, int]:
-    """Prunes ngrams that occur less than `filter_ngram_count_threshold`."""
-    def filter_func(item: tuple) -> bool:
-        ngram, count = item
-        return count >= filter_ngram_count_threshold
-
-    ngram_counter = dict(filter(filter_func, ngram_counter.items()))
-    return ngram_counter
 
 
 def convert_ngram_counter_to_pa_table(counter: dict[Ngram, int], ngram_size: int) -> pa.Table:
@@ -114,32 +93,24 @@ def count_ngrams_in_batches_and_save_to_file(dataset: HuggingfaceDataset, n_work
     """
     def count_ngrams_in_batch_and_save_to_file(batch: dict[str, list], indices: list[int]) -> None:
         start, end = indices[0], indices[-1]
+        logger.info(f'start samples {start}-{end}, memory status - {get_memory_stats_str()}')
+
         input_ids = batch['input_ids']
-        n_tokens_in_batch = sum(len(sequence) for sequence in input_ids)
-
-        logger.info(f'counting ngrams in samples {start}-{end}, '
-                    f'n_tokens_in_batch={n_tokens_in_batch}, '
-                    f'memory (MB): {get_memory_stats_mb()}')
-
         ngram_size_to_counter = count_ngrams_in_batch(input_ids, max_ngram_size)
 
         for ngram_size, ngram_counter in ngram_size_to_counter.items():
-            ngrams_before_prune = len(ngram_counter)
-            ngram_counter = prune_ngrams(ngram_counter, filter_ngram_count_threshold)
-            ngrams_after_prune = len(ngram_counter)
+            ngram_counter = prune_low_count_ngrams(ngram_counter, filter_ngram_count_threshold)
             ngram_counts_table = convert_ngram_counter_to_pa_table(ngram_counter, ngram_size)
             batch_ngram_counts_file = get_batch_ngram_counts_file(ngram_size, start, end)
             pq.write_table(ngram_counts_table, str(batch_ngram_counts_file))
-            batch_ngram_counts_file_size_bytes = batch_ngram_counts_file.stat().st_size
+            batch_ngram_counts_file_size_bytes = get_file_size_bytes(batch_ngram_counts_file)
+            logger.info(f'samples {start}-{end}, ngram size {ngram_size}, '
+                        f'parquet file size: {batch_ngram_counts_file_size_bytes}')
 
-            logger.info(f'ngram_size: {ngram_size}, '
-                        f'ngrams_before_prune: {ngrams_before_prune}, '
-                        f'ngrams_after_prune: {ngrams_after_prune}, '
-                        f'batch_ngram_counts_file_size_bytes: {batch_ngram_counts_file_size_bytes}')
-
-        logger.info(f'finished samples {start}-{end}, '
-                    f'counter size (MB): {sys.getsizeof(ngram_size_to_counter) // MEGA}, '
-                    f'memory (MB): {get_memory_stats_mb()}')
+        counter_size_bytes = recursive_total_size_bytes(ngram_size_to_counter)
+        logger.info(f'end samples {start}-{end}, '
+                    f'counter size: {space_str(counter_size_bytes)}, '
+                    f'memory status - {get_memory_stats_str()}')
 
     def get_batch_ngram_counts_file(ngram_size, start, end):
         save_dir_per_size = save_dir / str(ngram_size)
@@ -169,10 +140,11 @@ def count_ngrams_in_batches(tokenized_dataset: HuggingfaceDataset, save_dir: Pat
     :param filter_ngram_count_threshold: only ngrams with counts (per batch) greater or equal to this threshold will be
         saved.
     """
+    logger.info('start')
+
     if 'input_ids' not in tokenized_dataset.features:
         raise RuntimeError('Dataset should be tokenized. Feature "input_ids" not found.')
 
-    logger.info('start')
     save_dir.mkdir(parents=True, exist_ok=True)
     if n_workers is None:
         n_workers = os.cpu_count()

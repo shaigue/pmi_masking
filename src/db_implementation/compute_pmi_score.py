@@ -14,12 +14,10 @@ def compute_pmi_score_for_ngram_size(db_connection: duckdb.DuckDBPyConnection, n
     """
     table_name = get_ngram_table_name(ngram_size)
     add_column_query = f"ALTER TABLE {table_name} ADD COLUMN {fields.PMI_SCORE} DOUBLE;"
-    logger.info(f'executing query: {add_column_query}')
     db_connection.execute(add_column_query)
 
     update_pmi_score_query = f"UPDATE {table_name} SET {fields.PMI_SCORE} = " \
                              f"2 * {fields.LOG_LIKELIHOOD} - {fields.MAX_SEGMENTATION_LOG_LIKELIHOOD_SUM};"
-    logger.info(f'executing query: {update_pmi_score_query}')
     db_connection.execute(update_pmi_score_query)
 
 
@@ -30,6 +28,5 @@ def compute_pmi_score(db_connection: duckdb.DuckDBPyConnection, max_ngram_size: 
     """
     logger.info('start')
     for ngram_size in range(2, max_ngram_size + 1):
-        logger.info(f'computing pmi scores for ngrams of size {ngram_size}')
         compute_pmi_score_for_ngram_size(db_connection, ngram_size)
     logger.info('end')

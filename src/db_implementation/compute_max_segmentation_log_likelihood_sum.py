@@ -94,7 +94,7 @@ def compute_max_segmentation_log_likelihood_sum(db_connection: duckdb.DuckDBPyCo
     """
     logger.info('start')
     for ngram_size in range(2, max_ngram_size + 1):
-        logger.info(f'computing for ngram_size: {ngram_size}')
+        logger.info(f'start ngram_size: {ngram_size}')
 
         table_name = get_ngram_table_name(ngram_size)
         add_column_query = f"ALTER TABLE {table_name} ADD COLUMN " \
@@ -103,8 +103,8 @@ def compute_max_segmentation_log_likelihood_sum(db_connection: duckdb.DuckDBPyCo
 
         for split_i in range(1, ngram_size):
             update_query = get_update_query(ngram_size, split_i)
-            logger.info(f'doing update for split_i: {split_i}')
-            logger.info(f'executing query: {update_query}')
             db_connection.execute(update_query)
+
+        logger.info(f'end ngram_size: {ngram_size}')
 
     logger.info('end')
