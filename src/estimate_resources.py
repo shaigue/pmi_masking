@@ -19,12 +19,13 @@ def extrapolate_n_log_n(size1: int, size2: int, value1: float) -> float:
 def estimate_total_space_bytes(n_tokens_target: int, n_tokens_given: int, total_space_bytes_given: int) -> float:
     # assumption: total space increases linearly
     # this is not exact since the number of ngrams does not increase linearly in the number of tokens.
-    # TODO: when estimating the space, also consider the size of the DB after the count aggregation step, before
-    #    pruning. it might be larger than the final DB.
     return extrapolate_linear(n_tokens_given, n_tokens_target, total_space_bytes_given)
 
 
 def total_space_from_experiment_info(experiment_info: dict) -> int:
+    # TODO: when computing the total space, also consider the size of the DB after the count aggregation step, before
+    #    pruning. it might be larger than the final DB.
+    # TODO: I also need to consider the size of the tokenized dataset.
     return max(
         experiment_info['total_batch_ngram_counter_files_size'],
         experiment_info['db_file_size_after_pmi_score_compute']

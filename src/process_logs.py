@@ -1,4 +1,5 @@
 """Module that extracts required information from the logs"""
+# TODO: i have changed the logs a little bit. I should update this code to match.
 import datetime
 import re
 from collections.abc import Callable
