@@ -10,8 +10,8 @@ from datasets import Dataset as HuggingfaceDataset
 import pyarrow as pa
 import pyarrow.parquet as pq
 
-from src import fields
-from src.utils import get_token_field_names, get_module_logger, get_total_ngrams_per_size_file, tokenize_dataset, Ngram
+from src.db_implementation import fields
+from src.utils import get_token_field_names, get_module_logger, get_total_ngrams_per_size_file, Ngram
 
 MEGA = 2 ** 20
 logger = get_module_logger(__name__)

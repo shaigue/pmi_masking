@@ -3,8 +3,8 @@ from collections import Counter
 
 import pyarrow as pa
 
-from src import fields
-from src.count_ngrams_in_batches import count_ngrams_in_batch, convert_ngram_counter_to_pa_table, \
+from src.db_implementation import fields
+from src.db_implementation.count_ngrams_in_batches import count_ngrams_in_batch, convert_ngram_counter_to_pa_table, \
     count_total_ngrams_of_size_
 from src.utils import get_token_field_name
 

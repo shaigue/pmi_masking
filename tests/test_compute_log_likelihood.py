@@ -5,9 +5,9 @@ from pathlib import Path
 
 import duckdb
 
-from src import fields
-from src.compute_log_likelihood import compute_log_likelihood
-from src.aggregate_ngram_counts import get_create_table_query
+from src.db_implementation import fields
+from src.db_implementation.compute_log_likelihood import compute_log_likelihood
+from src.db_implementation.aggregate_ngram_counts import get_create_table_query
 from src.utils import get_ngram_table_name
 
 

@@ -3,7 +3,7 @@ from pathlib import Path
 
 import duckdb
 
-from src import fields
+from src.db_implementation import fields
 from src.utils import get_token_field_declaration_str, get_count_field_declaration_str, get_ngram_table_name, \
     get_token_fields_str, get_module_logger
 

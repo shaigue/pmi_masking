@@ -1,9 +1,7 @@
 import unittest
 
-import duckdb
-
-from src import fields
-from src.compute_pmi_score import compute_pmi_score_for_ngram_size
+from src.db_implementation import fields
+from src.db_implementation.compute_pmi_score import compute_pmi_score_for_ngram_size
 from src.naive_implementation import pmi_score
 from src.utils import get_token_field_name, get_ngram_table_name
 from tests.duckdb_test_case import DuckDBTestCase

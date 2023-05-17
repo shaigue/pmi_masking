@@ -2,8 +2,7 @@
 import duckdb
 
 from src.utils import get_ngram_table_name, get_token_field_name, get_module_logger
-from src import fields
-
+from src.db_implementation import fields
 
 logger = get_module_logger(__name__)
 

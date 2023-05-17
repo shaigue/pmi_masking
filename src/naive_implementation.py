@@ -3,9 +3,7 @@ from collections import Counter, defaultdict
 from math import log
 from typing import Iterable
 
-from datasets import Dataset as HuggingFaceDataset
-
-from src import fields
+from src.db_implementation import fields
 from src.load_dataset import load_bookcorpus_dataset
 from src.utils import Ngram, validate_ngram_size_to_vocab_percent, compute_number_of_ngrams_per_size_in_vocab
 

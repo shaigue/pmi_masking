@@ -2,13 +2,13 @@ import shutil
 from pathlib import Path
 
 import config
-from src.compute_log_likelihood import compute_log_likelihood
-from src.aggregate_ngram_counts import aggregate_ngram_counts
-from src.compute_max_segmentation_log_likelihood_sum import compute_max_segmentation_log_likelihood_sum
-from src.compute_pmi_masking_vocab import compute_pmi_masking_vocab
-from src.compute_pmi_score import compute_pmi_score
-from src.count_ngrams_in_batches import count_ngrams_in_batches
-from src.filter_low_count_ngrams import filter_low_count_ngrams
+from src.db_implementation.compute_log_likelihood import compute_log_likelihood
+from src.db_implementation.aggregate_ngram_counts import aggregate_ngram_counts
+from src.db_implementation.compute_max_segmentation_log_likelihood_sum import compute_max_segmentation_log_likelihood_sum
+from src.db_implementation.compute_pmi_masking_vocab import compute_pmi_masking_vocab
+from src.db_implementation.compute_pmi_score import compute_pmi_score
+from src.db_implementation.count_ngrams_in_batches import count_ngrams_in_batches
+from src.db_implementation.filter_low_count_ngrams import filter_low_count_ngrams
 from src.load_dataset import load_bookcorpus_dataset
 from src.utils import read_total_ngrams_per_size, open_db_connection, get_module_logger, get_file_size_bytes, \
     get_db_path, Ngram

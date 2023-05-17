@@ -3,8 +3,8 @@ import unittest
 import duckdb
 import pyarrow as pa
 
-from src import fields
-from src.compute_max_segmentation_log_likelihood_sum import get_join_condition, \
+from src.db_implementation import fields
+from src.db_implementation.compute_max_segmentation_log_likelihood_sum import get_join_condition, \
     compute_max_segmentation_log_likelihood_sum
 from src.utils import get_ngram_table_name, get_token_field_name
 

@@ -1,6 +1,6 @@
 import duckdb
 
-from src import fields
+from src.db_implementation import fields
 from src.utils import validate_ngram_size_to_vocab_percent, compute_number_of_ngrams_per_size_in_vocab, Ngram, \
     get_token_fields_str, get_ngram_table_name, get_module_logger
 
