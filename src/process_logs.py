@@ -1,5 +1,4 @@
 """Module that extracts required information from the logs"""
-# TODO: i have changed the logs a little bit. I should update this code to match.
 import datetime
 import re
 from collections.abc import Callable
@@ -8,12 +7,15 @@ from typing import Any
 from src.utils import get_log_file
 
 
-def read_log_lines() -> list[str]:
-    log_file = get_log_file()
-    with log_file.open('r') as f:
-        lines = f.read()
-    lines = lines.splitlines(keepends=False)
-    return lines
+COMPUTE_STEPS = [
+    'count_ngrams_in_batches',
+    'aggregate_ngram_counts',
+    'prune_low_count_ngrams',
+    'compute_log_likelihood',
+    'compute_max_segmentation_log_likelihood_sum',
+    'compute_pmi_score',
+    'compute_pmi_masking_vocab',
+]
 
 
 def parse_log_line(line: str) -> dict[str, str]:
@@ -29,8 +31,18 @@ def parse_log_line(line: str) -> dict[str, str]:
     return log_line_regex.match(line).groupdict()
 
 
-def parse_log_lines(log_lines: list[str]) -> list[dict[str, str]]:
-    return [parse_log_line(line) for line in log_lines]
+def read_log() -> list[str]:
+    log_file = get_log_file()
+    with log_file.open('r') as f:
+        lines = f.read()
+    lines = lines.splitlines(keepends=False)
+    return lines
+
+
+def read_and_parse_log() -> list[dict[str, str]]:
+    lines = read_log()
+    lines = [parse_log_line(line) for line in lines]
+    return lines
 
 
 def get_indices_that_satisfy_condition(lines: list, condition: Callable[[Any], bool]) -> list[int]:
@@ -84,64 +96,112 @@ def get_parsed_lines_timediff_seconds(parsed_line1: dict[str, str], parsed_line2
     return delta.seconds
 
 
-def extract_experiment_information_from_logs(experiment_name: str) -> dict:
-    log_lines = read_log_lines()
-    parsed_log_lines = parse_log_lines(log_lines)
-
-    start_experiment_regex = re.compile(f'start experiment_config: (\\w+\\.)?{experiment_name}')
+def get_last_experiment_lines(lines: list[dict[str, str]], experiment_name: str) -> list[dict[str, str]]:
+    start_experiment_regex = re.compile(f'start experiment: {experiment_name}')
     start_experiment_condition = get_regex_match_condition(start_experiment_regex, 'message')
-    end_experiment_regex = re.compile(f'end experiment_config: (\\w+\\.)?{experiment_name}')
+    end_experiment_regex = re.compile(f'end experiment: {experiment_name}')
     end_experiment_condition = get_regex_match_condition(end_experiment_regex, 'message')
-    experiment_lines = slice_by_start_end_conditions(parsed_log_lines, start_experiment_condition,
+    experiment_lines = slice_by_start_end_conditions(lines, start_experiment_condition,
                                                      end_experiment_condition)[-1]
+    return experiment_lines
 
-    # find the total time. take the time of the last line and subtract the time of the first line
-    total_time_seconds = get_parsed_lines_timediff_seconds(experiment_lines[0], experiment_lines[-1])
 
-    # find the number of tokens processed
+def extract_total_time(experiment_lines: list[dict[str, str]]) -> float:
+    experiment_start_line = experiment_lines[0]
+    experiment_end_line = experiment_lines[-1]
+    return get_parsed_lines_timediff_seconds(experiment_start_line, experiment_end_line)
+
+
+def extract_compute_steps_times(experiment_lines: list[dict[str, str]]) -> dict[str, float]:
+    compute_steps_times = {}
+    for compute_step in COMPUTE_STEPS:
+        module_name = f'src.db_implementation.{compute_step}'
+
+        def start_condition(parsed_line: dict[str, str]) -> bool:
+            return parsed_line['module_name'] == module_name and parsed_line['message'] == 'start'
+
+        def end_condition(parsed_line: dict[str, str]) -> bool:
+            return parsed_line['module_name'] == module_name and parsed_line['message'] == 'end'
+
+        compute_step_parsed_lines = slice_by_start_end_conditions(experiment_lines, start_condition,
+                                                                  end_condition)
+        if len(compute_step_parsed_lines) != 1:
+            raise RuntimeError
+
+        start_line = compute_step_parsed_lines[0][0]
+        end_line = compute_step_parsed_lines[0][-1]
+        compute_steps_times[compute_step] = get_parsed_lines_timediff_seconds(start_line, end_line)
+
+    return compute_steps_times
+
+
+def extract_n_tokens(experiment_lines) -> int:
     n_tokens_regex = re.compile(r'n_tokens: (?P<n_tokens>\d+)')
     parsed_n_tokens_messages = parse_matching_messages(experiment_lines, n_tokens_regex)
     if len(parsed_n_tokens_messages) != 1:
-        raise RuntimeError('there should only be one matching line')
-    n_tokens = int(parsed_n_tokens_messages[0]['n_tokens'])
+        raise RuntimeError
+    return int(parsed_n_tokens_messages[0]['n_tokens'])
 
-    # find the total size of the batch counts files
-    batch_info_regex = re.compile(r'ngram_size: (?P<ngram_size>\d+), '
-                                  r'ngrams_before_prune: (?P<ngrams_before_prune>\d+), '
-                                  r'ngrams_after_prune: (?P<ngrams_after_prune>\d+), '
-                                  r'batch_ngram_counts_file_size_bytes: (?P<batch_ngram_counts_file_size_bytes>\d+)')
-    parsed_batch_info_messages = parse_matching_messages(experiment_lines, batch_info_regex)
-    batch_ngram_counts_file_size_bytes_list = [int(batch_info['batch_ngram_counts_file_size_bytes'])
-                                               for batch_info in parsed_batch_info_messages]
-    total_batch_ngram_counter_files_size = sum(batch_ngram_counts_file_size_bytes_list)
 
-    db_size_after_pmi_compute_regex = re.compile(r'db size bytes after pmi compute: (?P<db_size_bytes>\d+)')
-    db_size_after_pmi_compute_lines = parse_matching_messages(experiment_lines, db_size_after_pmi_compute_regex)
-    if len(db_size_after_pmi_compute_lines) != 1:
-        raise RuntimeError(f'There are {len(db_size_after_pmi_compute_lines)} matches. there should be exactly 1.')
-    db_size_after_pmi_score_compute = int(db_size_after_pmi_compute_lines[0]['db_size_bytes'])
+def extract_n_workers(experiment_lines: list[dict[str, str]]) -> int:
+    regex = re.compile(r'n_workers=(?P<n_workers>\d+)')
+    parsed_messages = parse_matching_messages(experiment_lines, regex)
+    if len(parsed_messages) != 1:
+        raise RuntimeError
+    return int(parsed_messages[0]['n_workers'])
 
-    db_size_bytes_after_aggregate_counts_regex = re.compile(
-        r'db size bytes after aggregate counts: (?P<db_size_bytes>\d+)'
+
+def extract_batch_files_total_size(experiment_lines: list[dict[str, str]]) -> float:
+    batch_file_size_regex = re.compile(r'samples \d+-\d+, ngram size \d+, parquet file size: (?P<file_size>\d+)')
+    parsed_batch_file_size_messages = parse_matching_messages(experiment_lines, batch_file_size_regex)
+    if len(parsed_batch_file_size_messages) == 0:
+        raise RuntimeError
+    batch_file_sizes = [int(batch_info['file_size']) for batch_info in parsed_batch_file_size_messages]
+    batch_files_total_size = sum(batch_file_sizes)
+    return batch_files_total_size
+
+
+def extract_db_size_after_aggregate_ngram_counts(experiment_lines: list[dict[str, str]]) -> int:
+    regex = re.compile(r'db size bytes after aggregate counts: (?P<db_size>\d+)')
+    parsed_lines = parse_matching_messages(experiment_lines, regex)
+    if len(parsed_lines) != 1:
+        raise RuntimeError
+    return int(parsed_lines[0]['db_size'])
+
+
+def extract_db_size_after_compute_pmi_score(experiment_lines: list[dict[str, str]]) -> int:
+    regex = re.compile(r'db size bytes after pmi compute: (?P<db_size>\d+)')
+    parsed_lines = parse_matching_messages(experiment_lines, regex)
+    if len(parsed_lines) != 1:
+        raise RuntimeError
+    return int(parsed_lines[0]['db_size'])
+
+
+def extract_experiment_information_from_logs(experiment_name: str) -> dict:
+    experiment_info = {}
+    lines = read_and_parse_log()
+    experiment_lines = get_last_experiment_lines(lines, experiment_name)
+
+    experiment_info['total_time'] = extract_total_time(experiment_lines)
+    experiment_info['compute_steps_times'] = extract_compute_steps_times(experiment_lines)
+    experiment_info['n_tokens'] = extract_n_tokens(experiment_lines)
+    experiment_info['n_workers'] = extract_n_workers(experiment_lines)
+    experiment_info['batch_files_total_size'] = extract_batch_files_total_size(experiment_lines)
+    experiment_info['db_size_after_aggregate_ngram_counts'] = \
+        extract_db_size_after_aggregate_ngram_counts(experiment_lines)
+    experiment_info['db_size_after_compute_pmi_score'] = \
+        extract_db_size_after_compute_pmi_score(experiment_lines)
+    experiment_info['total_space'] = max(
+        experiment_info['db_size_after_compute_pmi_score'],
+        experiment_info['db_size_after_aggregate_ngram_counts'],
+        experiment_info['batch_files_total_size']
     )
-    db_size_bytes_after_aggregate_counts_lines = parse_matching_messages(
-        experiment_lines,
-        db_size_bytes_after_aggregate_counts_regex
-    )
-    if len(db_size_bytes_after_aggregate_counts_lines) != 1:
-        raise RuntimeError(f'There are {len(db_size_bytes_after_aggregate_counts_lines)} matches. '
-                           f'there should be exactly 1.')
-    db_size_bytes_after_aggregate_counts = int(db_size_bytes_after_aggregate_counts_lines[0]['db_size_bytes'])
 
-    return {
-        'n_tokens': n_tokens,
-        'total_batch_ngram_counter_files_size': total_batch_ngram_counter_files_size,
-        'db_size_after_pmi_score_compute': db_size_after_pmi_score_compute,
-        'db_size_bytes_after_aggregate_counts': db_size_bytes_after_aggregate_counts,
-        'total_time_seconds': total_time_seconds
-    }
+    return experiment_info
 
 
 if __name__ == '__main__':
     res = extract_experiment_information_from_logs('end_to_end_test')
+    # res = extract_experiment_information_from_logs('medium_size_bookcorpus')
+    # res = extract_experiment_information_from_logs('bookcorpus')
     print(res)
