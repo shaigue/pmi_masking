@@ -27,8 +27,6 @@ def get_module_logger(name: str) -> logging.Logger:
     :param name: should be __name__ special variable in the module that calls this
         function.
     """
-    # TODO: maybe add some config file to the directory for project
-    #  level configurations.
     logger = logging.getLogger(name)
     logger.setLevel(logging.INFO)
 

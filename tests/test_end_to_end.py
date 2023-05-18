@@ -6,18 +6,17 @@ from typing import Union
 import duckdb
 
 from src.db_implementation import fields
-from src.naive_implementation import run_pipeline_naive_with_parameters
-from src.db_implementation.run_pipeline import run_pipeline_with_experiment_config, get_experiment_name, get_save_dir
+from src.naive_implementation import run_pipeline_naive
+from src.db_implementation.run_pipeline import run_pipeline, get_experiment_name, get_save_dir
 from src.utils import Ngram
 from src.db_implementation.utils import get_ngram_table_name, get_token_fields_str, read_total_ngrams_per_size, \
     open_db_connection
-import experiment_config.end_to_end_test as parameters
+from experiment_config.end_to_end_test import config as end_to_end_test_config
 
 
 class MyTestCase(unittest.TestCase):
     def setUp(self) -> None:
-        experiment_name = get_experiment_name(parameters)
-        self.save_dir = get_save_dir(experiment_name)
+        self.save_dir = get_save_dir(end_to_end_test_config.name)
 
     def tearDown(self) -> None:
         shutil.rmtree(self.save_dir, ignore_errors=True)
@@ -50,8 +49,8 @@ class MyTestCase(unittest.TestCase):
         self.assertDictAlmostEqual(naive_result[column], db_result)
 
     def test_end_to_end(self):
-        pmi_masking_vocab_db = run_pipeline_with_experiment_config(parameters, clean_up=False)
-        naive_result = run_pipeline_naive_with_parameters(parameters)
+        pmi_masking_vocab_db = run_pipeline(end_to_end_test_config, clean_up=False)
+        naive_result = run_pipeline_naive(end_to_end_test_config)
 
         total_ngrams_per_size_db = read_total_ngrams_per_size(self.save_dir)
         self.assertDictEqual(naive_result['total_ngrams_per_size'], total_ngrams_per_size_db)

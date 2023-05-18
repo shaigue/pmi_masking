@@ -118,7 +118,6 @@ def estimate_dataset_resources(experiment_name: str, target_dataset_name: str, t
 
 
 if __name__ == '__main__':
-    # TODO: add ability to account for the number of workers
     print_experiment_resources_used('medium_size_bookcorpus')
     print_experiment_resources_used('bookcorpus')
     estimate_dataset_resources('medium_size_bookcorpus', 'bookcorpus', n_tokens.BOOKCORPUS)

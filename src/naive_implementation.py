@@ -3,15 +3,12 @@ from collections import Counter, defaultdict
 from math import log
 from typing import Iterable
 
+from experiment_config.experiement_config import ExperimentConfig
 from src.db_implementation import fields
-from src.load_dataset import load_bookcorpus_dataset
+from src.load_dataset import load_and_tokenize_dataset
 from src.utils import Ngram, validate_ngram_size_to_vocab_percent, compute_number_of_ngrams_per_size_in_vocab, \
     prune_low_count_ngrams
 
-
-# TODO: let zach code review this.
-# TODO: use this to test the other modules
-# TODO (optional): create a notebook that uses this module to showcase that the naive implementation does not scale
 
 def count_total_ngrams_per_size(tokenized_samples: list[list[int]], max_ngram_size: int) -> dict[int, int]:
     """Counts how many ngrams of each size there are in the input samples.
@@ -153,7 +150,7 @@ def compute_pmi_score(ngram_to_log_likelihood: dict[Ngram, float],
 
 
 def compute_pmi_masking_vocab(ngram_to_pmi_score: dict[Ngram, float], vocab_size: int,
-                              ngram_size_to_vocab_percent: dict[int, int]) -> list[Ngram]:
+                              ngram_size_to_vocab_percent: dict[int, float]) -> list[Ngram]:
     """Computes the pmi masking vocabulary.
     :param ngram_to_pmi_score: dictionary mapping ngrams to their pmi scores
     :param vocab_size: the size of the resulting vocabulary.
@@ -183,31 +180,25 @@ def compute_pmi_masking_vocab(ngram_to_pmi_score: dict[Ngram, float], vocab_size
     return masking_vocab
 
 
-def run_pipeline_naive(n_samples: int, max_ngram_size: int, vocab_size: int,
-                       min_count_threshold: int, ngram_size_to_vocab_percent: dict[int, int]) -> dict:
+def run_pipeline_naive(configuration: ExperimentConfig) -> dict:
     """Computes a pmi masking vocabulary from a tokenized dataset.
-    :param n_samples: number of samples to take from the dataset.
-    :param max_ngram_size: maximal size of ngram to consider
-    :param vocab_size: size of the output vocabulary
-    :param min_count_threshold: filter ngrams that occur less than this value
-    :param ngram_size_to_vocab_percent: dictionary mapping ngram sizes to the percent of the output vocabulary
-        that will be of that size.
+    :param configuration: the experiment configuration.
     :return: a dictionary containing the intermediate results of the pipeline, for testing the db based implementation.
     """
-    # TODO: need to make this more flexible, enabling it to load different datasets. for now it does the job.
-    # TODO: make n_samples optional
-    dataset = load_bookcorpus_dataset(n_samples)
+    dataset = load_and_tokenize_dataset(dataset_name=configuration.dataset_name,
+                                        tokenizer_name=configuration.tokenizer_name, n_workers=configuration.n_workers,
+                                        n_samples=configuration.n_samples)
     tokenized_samples = dataset['input_ids']
-    total_ngrams_per_size = count_total_ngrams_per_size(tokenized_samples, max_ngram_size)
-    ngram_to_count = count_ngrams(tokenized_samples, max_ngram_size)
-    ngram_to_count = prune_low_count_ngrams(ngram_to_count, min_count_threshold)
+    total_ngrams_per_size = count_total_ngrams_per_size(tokenized_samples, configuration.max_ngram_size)
+    ngram_to_count = count_ngrams(tokenized_samples, configuration.max_ngram_size)
+    ngram_to_count = prune_low_count_ngrams(ngram_to_count, configuration.min_count_threshold)
     ngram_to_log_likelihood = compute_log_likelihood(ngram_to_count, total_ngrams_per_size)
     ngram_to_max_segmentation_log_likelihood_sum = compute_max_segmentation_log_likelihood_sum(ngram_to_log_likelihood)
     ngram_to_pmi_score = compute_pmi_score(ngram_to_log_likelihood, ngram_to_max_segmentation_log_likelihood_sum)
     pmi_masking_vocab = compute_pmi_masking_vocab(
         ngram_to_pmi_score,
-        vocab_size,
-        ngram_size_to_vocab_percent,
+        configuration.vocab_size,
+        configuration.ngram_size_to_vocab_percent,
     )
     return {
         'total_ngrams_per_size': total_ngrams_per_size,
@@ -217,16 +208,6 @@ def run_pipeline_naive(n_samples: int, max_ngram_size: int, vocab_size: int,
         fields.PMI_SCORE: ngram_to_pmi_score,
         'pmi_masking_vocab': pmi_masking_vocab
     }
-
-
-def run_pipeline_naive_with_parameters(parameters):
-    return run_pipeline_naive(
-        max_ngram_size=parameters.max_ngram_size,
-        min_count_threshold=parameters.min_count_threshold,
-        vocab_size=parameters.vocab_size,
-        ngram_size_to_vocab_percent=parameters.ngram_size_to_vocab_percent,
-        n_samples=parameters.n_samples,
-    )
 
 
 # ==================================== Functions for testing ===========================================================
@@ -240,4 +221,3 @@ def compute_pmi_scores_from_tokenized_samples(tokenized_samples: list[list[int]]
     ngram_to_max_segmentation_log_likelihood_sum = compute_max_segmentation_log_likelihood_sum(ngram_to_log_likelihood)
     ngram_to_pmi_score = compute_pmi_score(ngram_to_log_likelihood, ngram_to_max_segmentation_log_likelihood_sum)
     return ngram_to_pmi_score
-

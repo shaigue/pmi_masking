@@ -4,7 +4,7 @@ import os
 from collections import Counter
 from pathlib import Path
 
-from datasets import Dataset as HuggingfaceDataset
+from datasets import Dataset
 import pyarrow as pa
 import pyarrow.parquet as pq
 
@@ -46,7 +46,7 @@ def count_total_ngrams_of_size_(input_ids: pa.Array, max_ngram_size: int):
     return total_ngrams_of_size
 
 
-def count_total_ngrams_of_size(dataset: HuggingfaceDataset, max_ngram_size: int) -> dict[int, int]:
+def count_total_ngrams_of_size(dataset: Dataset, max_ngram_size: int) -> dict[int, int]:
     """Counts the total number of ngrams of every size up to `max_ngram_size`.
     :param dataset: the tokenized dataset (assumed tokens are available in the column `input_ids`
     :param max_ngram_size: the maximal ngram size to be counted.
@@ -78,7 +78,7 @@ def convert_ngram_counter_to_pa_table(counter: dict[Ngram, int], ngram_size: int
     return table
 
 
-def count_ngrams_in_batches_and_save_to_file(dataset: HuggingfaceDataset, n_workers: int,
+def count_ngrams_in_batches_and_save_to_file(dataset: Dataset, n_workers: int,
                                              ngram_count_batch_size: int, max_ngram_size: int,
                                              filter_ngram_count_threshold: int, save_dir: Path) -> None:
     """Splits the dataset into batches and counts ngrams in each batch. saves result for each batch in a file.
@@ -127,9 +127,8 @@ def count_ngrams_in_batches_and_save_to_file(dataset: HuggingfaceDataset, n_work
     )
 
 
-def count_ngrams_in_batches(tokenized_dataset: HuggingfaceDataset, save_dir: Path,
-                            ngram_count_batch_size: int = 200_000, n_workers: int = None,
-                            max_ngram_size: int = 5, filter_ngram_count_threshold: int = 1) -> None:
+def count_ngrams_in_batches(tokenized_dataset: Dataset, save_dir: Path, ngram_count_batch_size: int, n_workers: int,
+                            max_ngram_size: int, filter_ngram_count_threshold: int) -> None:
     """Main function for this module. gets a dataset, tokenizes it, counts how many times each ngram appears in the
     dataset and the total number of ngrams of each size are in the dataset, and saves those to files.
     :param tokenized_dataset: dataset to process. assume it contains text in the 'text' column
@@ -146,9 +145,6 @@ def count_ngrams_in_batches(tokenized_dataset: HuggingfaceDataset, save_dir: Pat
         raise RuntimeError('Dataset should be tokenized. Feature "input_ids" not found.')
 
     save_dir.mkdir(parents=True, exist_ok=True)
-    if n_workers is None:
-        n_workers = os.cpu_count()
-    logger.info(f'n_workers={n_workers}')
 
     ngram_of_size_file = get_total_ngrams_per_size_file(save_dir)
     total_ngrams_per_size = count_total_ngrams_of_size(tokenized_dataset, max_ngram_size)
