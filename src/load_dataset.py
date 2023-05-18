@@ -2,7 +2,6 @@ from datasets import load_dataset, Dataset, concatenate_datasets
 
 from src.get_tokenizer import get_tokenizer
 from src.utils import tokenize_dataset
-# TODO: transform all functions to use only the load_and_tokenize_dataset
 __all__ = ['load_and_tokenize_dataset']
 
 

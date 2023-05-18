@@ -7,8 +7,6 @@ from src.db_implementation.utils import get_token_field_name, get_ngram_table_na
 from tests.duckdb_test_case import DuckDBTestCase
 
 
-# TODO: take the time with this to refactor the other tests, with utilities such as setting up a table and comparing
-#   python objects and tables.
 class MyTestCase(DuckDBTestCase):
     def test_compute_pmi_score(self):
         inputs = {

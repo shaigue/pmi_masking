@@ -9,9 +9,6 @@ from src.db_implementation.compute_max_segmentation_log_likelihood_sum import ge
 from src.db_implementation.utils import get_token_field_name, get_ngram_table_name
 
 
-# TODO: consider adding a 'test_utils' module, especially for converting table data into python objects
-
-
 class MyTestCase(unittest.TestCase):
     def setUp(self) -> None:
         self.db_connection = duckdb.connect(':memory:')

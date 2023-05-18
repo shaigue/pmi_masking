@@ -1,15 +1,10 @@
-
-numpy
 transformers
 datasets
-# for processing the wikipedia dataset
-# For some reason, when attempting to install apache-beam, it get's stuck. not sure why.
-# apache-beam
 # for getting memory stats
 psutil
 # for working with larger than memory data
 pyarrow
 duckdb
-# TODO: might not need the next ones for deployment
+# might not need those next ones for deployment
 matplotlib
 jupyter
