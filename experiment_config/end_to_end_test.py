@@ -1,3 +1,4 @@
+"""Configuration for running the end-to-end test. Uses a small subset of Bookcorpus dataset."""
 from src.experiment_config import ExperimentConfig
 
 config = ExperimentConfig(
