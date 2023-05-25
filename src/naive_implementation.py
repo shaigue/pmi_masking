@@ -182,7 +182,7 @@ def compute_pmi_masking_vocab(ngram_to_pmi_score: dict[Ngram, float], vocab_size
 
 def run_pipeline_naive(configuration: ExperimentConfig) -> dict:
     """Computes a pmi masking vocabulary from a tokenized dataset.
-    :param configuration: the experiment configuration.
+    :param configuration: the experiment experiment_config.
     :return: a dictionary containing the intermediate results of the pipeline, for testing the db based implementation.
     """
     dataset = load_and_tokenize_dataset(dataset_name=configuration.dataset_name,

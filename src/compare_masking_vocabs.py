@@ -30,7 +30,7 @@ def compare_masking_vocabs(vocab_file1: str, vocab_file2: str) -> None:
 
 
 def compare_official_vocabs():
-    compare_masking_vocabs('masking_vocabs/pmi-owt-wiki-bc.txt', 'masking_vocabs/pmi-wiki-bc.txt')
+    compare_masking_vocabs('pmi_masking_vocabs/pmi-owt-wiki-bc.txt', 'pmi_masking_vocabs/pmi-wiki-bc.txt')
 
 
 if __name__ == '__main__':

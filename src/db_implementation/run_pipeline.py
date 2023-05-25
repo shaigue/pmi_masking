@@ -1,4 +1,5 @@
 import shutil
+from pathlib import Path
 
 import config
 from src.experiment_config import ExperimentConfig
@@ -9,16 +10,16 @@ from src.db_implementation.compute_pmi_masking_vocab import compute_pmi_masking_
 from src.db_implementation.compute_pmi_score import compute_pmi_score
 from src.db_implementation.count_ngrams_in_batches import count_ngrams_in_batches
 from src.db_implementation.prune_low_count_ngrams import prune_low_count_ngrams
+from src.get_tokenizer import get_tokenizer
 from src.load_dataset import load_and_tokenize_dataset
-from src.utils import get_module_logger, get_file_size_bytes, \
-    Ngram
+from src.utils import get_module_logger, get_file_size_bytes, Ngram
 from src.db_implementation.utils import read_total_ngrams_per_size, get_db_path, open_db_connection
 
 logger = get_module_logger(__name__)
 
 
 def get_experiment_name(experiment_config):
-    """Extracts the name of the python configuration file"""
+    """Extracts the name of the python experiment_config file"""
     return experiment_config.__name__.split('.')[-1]
 
 
@@ -26,44 +27,48 @@ def get_save_dir(experiment_name: str):
     return config.DATA_DIR / experiment_name
 
 
-def run_pipeline(configuration: ExperimentConfig, clean_up: bool = True) -> list[Ngram]:
+def get_vocab_file(experiment_config: ExperimentConfig) -> Path:
+    return config.VOCABS_DIR / f'{experiment_config.name}.txt'
+
+
+def run_pipeline(experiment_config: ExperimentConfig, clean_up: bool = True,
+                 save_vocab_to_file: bool = True) -> list[Ngram]:
     """Runs the entire pipeline for creating the PMI masking vocabulary from a dataset, using a database."""
-    # TODO: maybe save the pmi_masking_vocabulary to a file in the end?
     # TODO: add checkpoints? so we can resume if we were interrupted?
     # TODO: add some way to show progress. running this on a large dataset can take a lot of time.
-    logger.info(f'start experiment: {configuration.name}')
-    logger.info(f'n_workers={configuration.n_workers}')
+    logger.info(f'start experiment: {experiment_config.name}')
+    logger.info(f'n_workers={experiment_config.n_workers}')
 
-    save_dir = get_save_dir(configuration.name)
+    save_dir = get_save_dir(experiment_config.name)
     shutil.rmtree(save_dir, ignore_errors=True)
     save_dir.mkdir(exist_ok=True)
     db_connection = open_db_connection(save_dir)
 
-    dataset = load_and_tokenize_dataset(dataset_name=configuration.dataset_name,
-                                        tokenizer_name=configuration.tokenizer_name, n_workers=configuration.n_workers,
-                                        n_samples=configuration.n_samples)
+    dataset = load_and_tokenize_dataset(dataset_name=experiment_config.dataset_name,
+                                        tokenizer_name=experiment_config.tokenizer_name, n_workers=experiment_config.n_workers,
+                                        n_samples=experiment_config.n_samples)
     count_ngrams_in_batches(
         tokenized_dataset=dataset,
         save_dir=save_dir,
-        ngram_count_batch_size=configuration.ngram_count_batch_size,
-        n_workers=configuration.n_workers,
-        max_ngram_size=configuration.max_ngram_size,
-        filter_ngram_count_threshold=configuration.min_count_batch_threshold,
+        ngram_count_batch_size=experiment_config.ngram_count_batch_size,
+        n_workers=experiment_config.n_workers,
+        max_ngram_size=experiment_config.max_ngram_size,
+        filter_ngram_count_threshold=experiment_config.min_count_batch_threshold,
     )
-    aggregate_ngram_counts(save_dir, db_connection, configuration.max_ngram_size)
+    aggregate_ngram_counts(save_dir, db_connection, experiment_config.max_ngram_size)
 
     db_connection.commit()
     db_size_bytes = get_file_size_bytes(get_db_path(save_dir))
     logger.info(f'db size bytes after aggregate counts: {db_size_bytes}')
 
-    prune_low_count_ngrams(db_connection, configuration.max_ngram_size, configuration.min_count_threshold)
+    prune_low_count_ngrams(db_connection, experiment_config.max_ngram_size, experiment_config.min_count_threshold)
     total_ngrams_per_size = read_total_ngrams_per_size(save_dir)
     compute_log_likelihood(db_connection, total_ngrams_per_size)
-    compute_max_segmentation_log_likelihood_sum(db_connection, configuration.max_ngram_size)
-    compute_pmi_score(db_connection, configuration.max_ngram_size)
+    compute_max_segmentation_log_likelihood_sum(db_connection, experiment_config.max_ngram_size)
+    compute_pmi_score(db_connection, experiment_config.max_ngram_size)
 
-    pmi_masking_vocab = compute_pmi_masking_vocab(db_connection, configuration.vocab_size,
-                                                  configuration.ngram_size_to_vocab_percent)
+    pmi_masking_vocab = compute_pmi_masking_vocab(db_connection, experiment_config.vocab_size,
+                                                  experiment_config.ngram_size_to_vocab_percent)
 
     db_connection.close()
     db_size_bytes = get_file_size_bytes(get_db_path(save_dir))
@@ -72,7 +77,16 @@ def run_pipeline(configuration: ExperimentConfig, clean_up: bool = True) -> list
     if clean_up:
         shutil.rmtree(save_dir, ignore_errors=True)
 
-    logger.info(f'end experiment: {configuration.name}')
+    if save_vocab_to_file:
+        tokenizer = get_tokenizer(experiment_config.tokenizer_name)
+        lines = tokenizer.batch_decode(pmi_masking_vocab)
+        vocab_file = get_vocab_file(experiment_config)
+        with vocab_file.open('w') as f:
+            for line in lines:
+                line += '\n'
+                f.write(line)
+
+    logger.info(f'end experiment: {experiment_config.name}')
 
     return pmi_masking_vocab
 

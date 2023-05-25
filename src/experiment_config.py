@@ -5,10 +5,10 @@ from src.utils import get_cpu_count
 
 @dataclass
 class ExperimentConfig:
-    """Object representing the experiment configuration.
+    """Object representing the experiment experiment_config.
 
     Attributes:
-        name: configuration name
+        name: experiment_config name
         dataset_name: name of the dataset to use
         n_samples: number of samples to take from the dataset. If None, uses the entire dataset
         tokenizer_name: name of the tokenizer to use
