@@ -10,7 +10,13 @@ logger = get_module_logger(__name__)
 
 def compute_pmi_masking_vocab_per_ngram_size(db_connection: duckdb.DuckDBPyConnection, ngram_size: int,
                                              ngrams_of_size_in_vocab: int) -> list[Ngram]:
-    """Takes `ngrams_of_size_in_vocab` with the highest `pmi_score` of the ngrams of size `ngram_size`."""
+    """Takes the ngrams with the highest pmi score of a given ngrams size.
+
+    :param db_connection: open connection to the DB
+    :param ngram_size: size of the ngrams that are interested in
+    :param ngrams_of_size_in_vocab: number of ngrams of that size that we put in our vocabulary
+    :return: List of the ngrams of that size with the highest PMI scores
+    """
     token_fields_str = get_token_fields_str(ngram_size)
     table_name = get_ngram_table_name(ngram_size)
     query = f'SELECT {token_fields_str} FROM {table_name} ' \
@@ -21,9 +27,10 @@ def compute_pmi_masking_vocab_per_ngram_size(db_connection: duckdb.DuckDBPyConne
 
 def compute_pmi_masking_vocab(db_connection: duckdb.DuckDBPyConnection, vocab_size: int,
                               ngram_size_to_vocab_percent: dict[int, float]) -> list[Ngram]:
-    """Computes the pmi masking vocabulary.
+    """Computes the PMI masking vocabulary.
+
     :param db_connection: an open read/write connection to duckdb database.
-    :param vocab_size: the size of the resulting vocabulary.
+    :param vocab_size: total size of the resulting vocabulary.
     :param ngram_size_to_vocab_percent: dictionary mapping ngrams size to the percentage of ngrams of that size in the
         resulting vocabulary.
         for example, ngram_size_to_vocab_percent={2: 30, 3: 30, 4:40} means that the resulting vocabulary will be 30%

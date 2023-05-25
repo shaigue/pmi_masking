@@ -1,23 +1,22 @@
-"""Collecting counts from batches"""
 import json
-import os
 from collections import Counter
 from pathlib import Path
 
-from datasets import Dataset
 import pyarrow as pa
 import pyarrow.parquet as pq
+from datasets import Dataset
 
 from src.db_implementation import fields
+from src.db_implementation.utils import get_token_field_names, get_total_ngrams_per_size_file
 from src.utils import get_module_logger, Ngram, get_memory_stats_str, prune_low_count_ngrams, get_file_size_bytes, \
     recursive_total_size_bytes, space_str
-from src.db_implementation.utils import get_token_field_names, get_total_ngrams_per_size_file
 
 logger = get_module_logger(__name__)
 
 
 def count_ngrams_in_batch(batch: list[list[int]], max_ngram_size: int) -> dict[int, Counter[Ngram, int]]:
-    """Counts how many times each ngram appears in the batch.
+    """Counts how many times each ngram appears in a batch.
+
     :param batch: a list of token sequences.
     :param max_ngram_size: the maximum size of ngrams to consider.
     :returns: a dictionary mapping from ngram sizes to the counter of ngrams of that size.
@@ -34,8 +33,13 @@ def count_ngrams_in_batch(batch: list[list[int]], max_ngram_size: int) -> dict[i
     return ngram_size_to_counter
 
 
-def count_total_ngrams_of_size_(input_ids: pa.Array, max_ngram_size: int):
-    """Helper function for `count_total_ngrams_of_size` for testing."""
+def count_total_ngrams_of_size_pa(input_ids: pa.Array, max_ngram_size: int) -> dict[int, int]:
+    """Counts the total number of ngrams of each size, from a pyarrow array containing the tokenized input sequences.
+
+    :param input_ids:
+    :param max_ngram_size:
+    :return: mapping from ngram size to the number of ngrams of that size in the input.
+    """
     sequence_lengths = pa.compute.list_value_length(input_ids)
     total_ngrams_of_size = {}
     for ngram_size in range(1, max_ngram_size + 1):
@@ -46,21 +50,23 @@ def count_total_ngrams_of_size_(input_ids: pa.Array, max_ngram_size: int):
     return total_ngrams_of_size
 
 
-def count_total_ngrams_of_size(dataset: Dataset, max_ngram_size: int) -> dict[int, int]:
+def count_total_ngrams_of_size_dataset(dataset: Dataset, max_ngram_size: int) -> dict[int, int]:
     """Counts the total number of ngrams of every size up to `max_ngram_size`.
-    :param dataset: the tokenized dataset (assumed tokens are available in the column `input_ids`
+
+    :param dataset: the tokenized dataset (assumed tokens are available in the column `input_ids`)
     :param max_ngram_size: the maximal ngram size to be counted.
     :returns: a dictionary mapping ngram size to the total number of ngrams of that size.
     """
     # TODO: will this work when the dataset is larger than memory? Need to test that.
     #  if not, we need to split into batches and aggregate.
     input_ids = dataset.data.column('input_ids')
-    return count_total_ngrams_of_size_(input_ids, max_ngram_size)
+    return count_total_ngrams_of_size_pa(input_ids, max_ngram_size)
 
 
 def convert_ngram_counter_to_pa_table(counter: dict[Ngram, int], ngram_size: int) -> pa.Table:
-    """Converts a counter containing counts of ngrams of a given size to a pyarrow table to save it in parquet format.
-    :param counter: a mapping between an ngram to its count
+    """Converts a counter containing counts of ngrams of a given size to a pyarrow table to save it as parquet file.
+
+    :param counter: a mapping from ngrams to their count
     :param ngram_size: the size of the ngrams in this counter
     :returns: a pyarrow table with columns 'token_0', 'token_1', ... (depending on `ngram_size`) and 'count'.
     """
@@ -83,6 +89,7 @@ def count_ngrams_in_batches_and_save_to_file(dataset: Dataset, n_workers: int,
                                              filter_ngram_count_threshold: int, save_dir: Path) -> None:
     """Splits the dataset into batches and counts ngrams in each batch. saves result for each batch in a file.
     Resulting files are saved in `save_dir` in a separate subdirectory for each ngram size.
+
     :param dataset: the dataset to process. assumes that it is already tokenized.
     :param n_workers: number of worker processes
     :param ngram_count_batch_size: the size of the batch to split the dataset into
@@ -129,8 +136,9 @@ def count_ngrams_in_batches_and_save_to_file(dataset: Dataset, n_workers: int,
 
 def count_ngrams_in_batches(tokenized_dataset: Dataset, save_dir: Path, ngram_count_batch_size: int, n_workers: int,
                             max_ngram_size: int, filter_ngram_count_threshold: int) -> None:
-    """Main function for this module. gets a dataset, tokenizes it, counts how many times each ngram appears in the
+    """Gets a dataset, tokenizes it, counts how many times each ngram appears in the
     dataset and the total number of ngrams of each size are in the dataset, and saves those to files.
+
     :param tokenized_dataset: dataset to process. assume it contains text in the 'text' column
     :param save_dir: directory to save the resulting files
     :param ngram_count_batch_size: the batch size to use when counting ngrams
@@ -147,7 +155,7 @@ def count_ngrams_in_batches(tokenized_dataset: Dataset, save_dir: Path, ngram_co
     save_dir.mkdir(parents=True, exist_ok=True)
 
     ngram_of_size_file = get_total_ngrams_per_size_file(save_dir)
-    total_ngrams_per_size = count_total_ngrams_of_size(tokenized_dataset, max_ngram_size)
+    total_ngrams_per_size = count_total_ngrams_of_size_dataset(tokenized_dataset, max_ngram_size)
     n_tokens = total_ngrams_per_size[1]
     logger.info(f'n_tokens: {n_tokens}')
     with ngram_of_size_file.open('w') as f:

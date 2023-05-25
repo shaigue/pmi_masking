@@ -1,4 +1,5 @@
 """Module that extracts required information from the logs"""
+# TODO: should I document this? it is for internal use...
 import datetime
 import re
 from collections.abc import Callable

@@ -5,15 +5,13 @@ from pathlib import Path
 from sys import getsizeof
 
 import psutil
-from datasets import Dataset as HuggingfaceDataset
-from transformers import PreTrainedTokenizerBase
 
 import config
 
 Ngram = tuple[int, ...]
 
 
-def get_cpu_count() -> int:
+def get_available_cpus_count() -> int:
     return len(psutil.Process().cpu_affinity())
 
 
@@ -23,9 +21,10 @@ def get_log_file():
 
 
 def get_module_logger(name: str) -> logging.Logger:
-    """
-    :param name: should be __name__ special variable in the module that calls this
-        function.
+    """Configures a module logger.
+
+    :param name: should be __name__ variable in the module that calls this function.
+    :return: logger to be used in that module.
     """
     logger = logging.getLogger(name)
     logger.setLevel(logging.INFO)
@@ -50,21 +49,13 @@ def get_file_size_bytes(file: Path) -> int:
     return file.stat().st_size
 
 
-def tokenize_dataset(dataset: HuggingfaceDataset, tokenizer: PreTrainedTokenizerBase,
-                     n_workers: int, tokenizer_batch_size: int):
-    def tokenize(batch: dict[str, list]):
-        return tokenizer(batch['text'], add_special_tokens=False)
+def validate_ngram_size_to_vocab_percent(ngram_size_to_vocab_percent: dict[int, float]) -> None:
+    """Validates that the total percentage sums up to 100 and that there are no ngrams of size 1.
 
-    dataset = dataset.map(
-        tokenize,
-        batched=True,
-        batch_size=tokenizer_batch_size,
-        num_proc=n_workers,
-    )
-    return dataset
-
-
-def validate_ngram_size_to_vocab_percent(ngram_size_to_vocab_percent: dict[int, float]):
+    :param ngram_size_to_vocab_percent: mapping from ngram size to the percentage of ngrams of that size
+     in the final pmi masking vocabulary.
+    :raises: ValueError if not valid.
+    """
     if 1 in ngram_size_to_vocab_percent.keys():
         raise ValueError('there should not be ngrams of size 1 in the vocabulary. '
                          f'input suggests that there should be {ngram_size_to_vocab_percent[1]}% ngrams of size 1.')
@@ -75,18 +66,26 @@ def validate_ngram_size_to_vocab_percent(ngram_size_to_vocab_percent: dict[int, 
                          f'input: {ngram_size_to_vocab_percent} sums to {total_percent}.')
 
 
-def compute_number_of_ngrams_per_size_in_vocab(ngram_size_to_vocab_percent: dict[int, float], vocab_size: int):
-    # compute how much ngrams per size we take
+def compute_number_of_ngrams_per_size_in_vocab(ngram_size_to_vocab_percent: dict[int, float],
+                                               vocab_size: int) -> dict[int, int]:
+    """Computes how many ngrams of each size there should be in the masking vocabulary.
+
+    :param ngram_size_to_vocab_percent: mapping from ngram size to its percent of the final masking vocabulary.
+    :param vocab_size: size of the masking vocabulary.
+    :return: mapping from ngram size to the number of ngrams of that size in the final masking vocabulary.
+    """
     number_of_ngrams_of_size_in_vocab = {}
     for ngram_size, vocab_percent in ngram_size_to_vocab_percent.items():
         number_of_ngrams_of_size_in_vocab[ngram_size] = floor(vocab_size * vocab_percent / 100)
-    # take the extra tokens from the smallest ngram_size (=2)
+
+    # take the remaining tokens from the smallest ngram_size ( = 2)
     extra_ngrams = vocab_size - sum(number_of_ngrams_of_size_in_vocab.values())
     number_of_ngrams_of_size_in_vocab[2] += extra_ngrams
     return number_of_ngrams_of_size_in_vocab
 
 
 def get_memory_stats_str() -> str:
+    """Returns a string that contains information about memory usage."""
     mem = psutil.virtual_memory()
     return f'total: {space_str(mem.total)}, used: {space_str(mem.used)}, available: {space_str(mem.available)}'
 
@@ -97,12 +96,13 @@ def prune_low_count_ngrams(ngram_counter: dict[Ngram, int], min_count_threshold:
     return ngram_counter
 
 
-def recursive_total_size_bytes(o):
+def recursive_total_size_bytes(o: object) -> int:
     """Returns the approximate memory footprint an object and all of its contents.
+    Automatically finds the contents of the following builtin containers and their subclasses:
+      tuple, list, dict, set and frozenset.
 
-    Automatically finds the contents of the following builtin containers and
-    their subclasses:  tuple, list, deque, dict, set and frozenset.
-    To search other containers, add handlers to iterate over their contents:
+    :param o: object that we want to compute the size of.
+    :return: approximate size of the object in bytes.
     """
     def dict_handler(d: dict):
         return chain.from_iterable(d.items())
@@ -114,11 +114,11 @@ def recursive_total_size_bytes(o):
         set: iter,
         frozenset: iter,
     }
-    seen = set()  # track which object id's have already been seen
-    default_size = getsizeof(0)  # estimate sizeof object without __sizeof__
+    seen = set()
+    default_size = getsizeof(0)
 
     def sizeof(o):
-        if id(o) in seen:  # do not double count the same object
+        if id(o) in seen:
             return 0
         seen.add(id(o))
         s = getsizeof(o, default_size)
@@ -133,6 +133,7 @@ def recursive_total_size_bytes(o):
 
 
 def time_str(time_seconds: float) -> str:
+    """Converts time in seconds to appropriate scale and representing string."""
     if time_seconds < 120:
         return f'{time_seconds:.2f} seconds'
     time_minutes = time_seconds / 60
@@ -146,6 +147,7 @@ def time_str(time_seconds: float) -> str:
 
 
 def space_str(space_bytes: float) -> str:
+    """Converts space in bytes to appropriate scale and generates a representing string."""
     if space_bytes < 2 ** 10:
         return f'{space_bytes:.2f} Bytes'
     space_kb = space_bytes / (2 ** 10)

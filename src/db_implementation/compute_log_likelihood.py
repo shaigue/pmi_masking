@@ -1,4 +1,3 @@
-"""A module that adds a new log_likelihood column to the counts table"""
 import math
 
 import duckdb
@@ -12,6 +11,7 @@ logger = get_module_logger(__name__)
 
 def compute_log_likelihood(db_connection: duckdb.DuckDBPyConnection, total_ngrams_per_size: dict[int, int]) -> None:
     """Adds a log_likelihood column to the database containing the keys (token ids) and the counts.
+
     :param db_connection: an open read/write connection to a duckdb.
     :param total_ngrams_per_size: a dictionary containing the number of times ngrams of a given size appear in the
         dataset

@@ -1,8 +1,8 @@
-"""This module computes the miniman segments term for the PMI scores with dynamic programming."""
 import duckdb
 
 from src.utils import get_module_logger
-from src.db_implementation.utils import get_token_field_name, get_ngram_table_name
+from src.db_implementation.utils import get_ngram_table_name
+from src.db_implementation.fields import get_token_field_name
 from src.db_implementation import fields
 
 logger = get_module_logger(__name__)
@@ -12,6 +12,7 @@ def get_join_condition(main_table_alias: str, sub_table_alias: str, sub_ngram_si
     """Generates a string representing the condition on the join between the main table and the sub ngram table.
     The main table is the ngram size that is being updated, and the sub table is the table that it's data is used
     to compute the new value of the main table.
+
     :param main_table_alias: the alias of the main table
     :param sub_table_alias: the alias of the sub table
     :param sub_ngram_size: the size of the sub ngram
@@ -30,10 +31,14 @@ def get_join_condition(main_table_alias: str, sub_table_alias: str, sub_ngram_si
 
 
 def get_sub_table_value_str(sub_table_alias: str, sub_ngram_size: int) -> str:
-    """Returns a string in SQL syntax that represent the value for the sub-ngram that we want to propogate.
+    """Returns a string in SQL syntax that represent the value for the sub-ngram that we want to propagate.
     If the ngram is of size 1, only log likelihood is available.
-    If the ngram is of size greater than 1, we take the maximum of it's log likelihood and
-    max segmentation log likelihood sum
+    If the ngram is of size greater than 1, we take the maximum of log_likelihood and
+    max_segmentation_log_likelihood_sum.
+
+    :param sub_table_alias: Alias of the table we want to extract the value from.
+    :param sub_ngram_size: Size of the sub ngrams that we are interested in.
+    :return: String representing in SQL the value that we want to select from the given table.
     """
     if sub_ngram_size == 1:
         return f'{sub_table_alias}.{fields.LOG_LIKELIHOOD}'
@@ -43,10 +48,12 @@ def get_sub_table_value_str(sub_table_alias: str, sub_ngram_size: int) -> str:
 
 
 def get_update_query(ngram_size: int, split_i: int) -> str:
-    """Creates an SQL query that computes and updates the values for a given split point.
+    """Creates a query that updates the max_segmentation_log_likelihood_sum values for a given split point.
+    Sets the new value to the maximum of the current value and the split's computed value.
+
     :param ngram_size: the ngrams of this size will be updated by the query
     :param split_i: the index where the ngram is split
-    :return: an UPDATE SQL query
+    :return: an UPDATE SQL query string
     """
     left_sub_ngram_size = split_i
     right_sub_ngram_size = ngram_size - left_sub_ngram_size
@@ -87,8 +94,8 @@ def get_update_query(ngram_size: int, split_i: int) -> str:
 
 
 def compute_max_segmentation_log_likelihood_sum(db_connection: duckdb.DuckDBPyConnection, max_ngram_size: int) -> None:
-    """Computes the maximal segmentation log likelihood sum for each ngram, to be used in the PMI score computation.
-    Adds a new column to the table.
+    """Computes the maximal segmentation log likelihood sum for each ngram, used for computing PMI scores.
+
     :param db_connection: an open connection to the DB containing the ngram data tables.
     :param max_ngram_size: the maximal ngram size to consider.
     """

@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field
 
-from src.utils import get_cpu_count
+from src.utils import get_available_cpus_count
 
 
 @dataclass
@@ -38,5 +38,5 @@ class ExperimentConfig:
     ngram_size_to_vocab_percent: dict[int, float] = field(default_factory=default_ngram_size_to_vocab_percent)
     # specific implementation parameters
     ngram_count_batch_size: int = 1_000_000
-    n_workers: int = get_cpu_count()
+    n_workers: int = get_available_cpus_count()
     min_count_batch_threshold: int = 1

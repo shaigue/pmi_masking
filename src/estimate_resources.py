@@ -5,7 +5,7 @@ from pprint import pprint
 import n_tokens
 from src.process_logs import extract_experiment_information_from_logs
 from src.utils import time_str, space_str
-
+# TODO: should I document this? it is for internal use...
 
 def extrapolate_linear(size1: int, size2: int, value1: float) -> float:
     return (size2 / size1) * value1

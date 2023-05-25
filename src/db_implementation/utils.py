@@ -3,25 +3,9 @@ from pathlib import Path
 
 import duckdb
 
-
-def get_token_field_name(token_i: int) -> str:
-    return f'token_{token_i}'
-
-
-def get_token_field_sql_type() -> str:
-    return 'UINTEGER'
-
-
-def get_count_field_sql_type() -> str:
-    return 'UINTEGER'
-
-
-def get_token_field_declaration_str(token_i: int) -> str:
-    return f'{get_token_field_name(token_i)} {get_token_field_sql_type()}'
-
-
-def get_count_field_declaration_str() -> str:
-    return f'count {get_count_field_sql_type()}'
+import config
+from src.db_implementation.fields import get_token_field_name
+from src.experiment_config import ExperimentConfig
 
 
 def get_ngram_table_name(ngram_size: int) -> str:
@@ -57,3 +41,11 @@ def open_db_connection(save_dir: Path):
     database_file = get_db_path(save_dir)
     db_connection = duckdb.connect(str(database_file))
     return db_connection
+
+
+def get_save_dir(experiment_name: str):
+    return config.DATA_DIR / experiment_name
+
+
+def get_vocab_file(experiment_config: ExperimentConfig) -> Path:
+    return config.VOCABS_DIR / f'{experiment_config.name}.txt'

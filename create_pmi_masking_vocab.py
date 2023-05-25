@@ -9,6 +9,7 @@ logger = get_module_logger(__name__)
 
 
 def get_experiment_config_options() -> list[str]:
+    """Returns a list of all the available options for experiment config."""
     experiment_config_dir = config.EXPERIMENT_CONFIG_DIR
     config_name_options = [file.stem for file in experiment_config_dir.iterdir() if file.suffix == '.py']
     return config_name_options

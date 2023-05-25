@@ -5,8 +5,8 @@ import pyarrow as pa
 
 from src.db_implementation import fields
 from src.db_implementation.count_ngrams_in_batches import count_ngrams_in_batch, convert_ngram_counter_to_pa_table, \
-    count_total_ngrams_of_size_
-from src.db_implementation.utils import get_token_field_name
+    count_total_ngrams_of_size_pa
+from src.db_implementation.fields import get_token_field_name
 
 
 class MyTestCase(unittest.TestCase):
@@ -76,7 +76,7 @@ class MyTestCase(unittest.TestCase):
             2: 3 + 0 + 5,
             3: 2 + 0 + 4,
         }
-        result = count_total_ngrams_of_size_(input_ids, max_ngram_size)
+        result = count_total_ngrams_of_size_pa(input_ids, max_ngram_size)
         self.assertEqual(expected, result)
 
 

@@ -9,7 +9,12 @@ logger = get_module_logger(__name__)
 
 def prune_low_count_ngrams(db_connection: duckdb.DuckDBPyConnection, max_ngram_size: int,
                            min_count_threshold: int) -> None:
-    """Prunes ngrams that have counts lower than `min_count_threshold`."""
+    """Prunes ngrams that have counts lower than `min_count_threshold`.
+
+    :param db_connection: open connection to the DB.
+    :param max_ngram_size: maximal size of ngram to consider.
+    :param min_count_threshold: ngrams with counts strictly lower than this value will be pruned.
+    """
     logger.info('start')
     for ngram_size in range(1, max_ngram_size + 1):
         table_name = get_ngram_table_name(ngram_size)

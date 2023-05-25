@@ -5,7 +5,8 @@ import pyarrow as pa
 
 from src.db_implementation import fields
 from src.db_implementation.aggregate_ngram_counts import get_create_table_query, get_merge_and_add_counts_query
-from src.db_implementation.utils import get_token_field_name, get_ngram_table_name
+from src.db_implementation.utils import get_ngram_table_name
+from src.db_implementation.fields import get_token_field_name
 
 
 class MyTestCase(unittest.TestCase):

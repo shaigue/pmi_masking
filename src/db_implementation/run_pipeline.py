@@ -1,11 +1,10 @@
 import shutil
-from pathlib import Path
 
-import config
 from src.experiment_config import ExperimentConfig
 from src.db_implementation.compute_log_likelihood import compute_log_likelihood
 from src.db_implementation.aggregate_ngram_counts import aggregate_ngram_counts
-from src.db_implementation.compute_max_segmentation_log_likelihood_sum import compute_max_segmentation_log_likelihood_sum
+from src.db_implementation.compute_max_segmentation_log_likelihood_sum import \
+    compute_max_segmentation_log_likelihood_sum
 from src.db_implementation.compute_pmi_masking_vocab import compute_pmi_masking_vocab
 from src.db_implementation.compute_pmi_score import compute_pmi_score
 from src.db_implementation.count_ngrams_in_batches import count_ngrams_in_batches
@@ -13,27 +12,23 @@ from src.db_implementation.prune_low_count_ngrams import prune_low_count_ngrams
 from src.get_tokenizer import get_tokenizer
 from src.load_dataset import load_and_tokenize_dataset
 from src.utils import get_module_logger, get_file_size_bytes, Ngram
-from src.db_implementation.utils import read_total_ngrams_per_size, get_db_path, open_db_connection
+from src.db_implementation.utils import read_total_ngrams_per_size, get_db_path, open_db_connection, get_save_dir, \
+    get_vocab_file
 
 logger = get_module_logger(__name__)
 
 
-def get_experiment_name(experiment_config):
-    """Extracts the name of the python experiment_config file"""
-    return experiment_config.__name__.split('.')[-1]
-
-
-def get_save_dir(experiment_name: str):
-    return config.DATA_DIR / experiment_name
-
-
-def get_vocab_file(experiment_config: ExperimentConfig) -> Path:
-    return config.VOCABS_DIR / f'{experiment_config.name}.txt'
-
-
 def run_pipeline(experiment_config: ExperimentConfig, clean_up: bool = True,
                  save_vocab_to_file: bool = True) -> list[Ngram]:
-    """Runs the entire pipeline for creating the PMI masking vocabulary from a dataset, using a database."""
+    """Runs the entire pipeline for creating the PMI masking vocabulary from a dataset, using a database.
+
+    :param experiment_config: configurations for the experiment, like which dataset to use, tokenizer, ...
+    :param clean_up: if True, the database will be deleted after the pmi masking vocabulary is generated.
+        otherwise, it will not be deleted.
+    :param save_vocab_to_file: if True, the resulting PMI masking vocabulary will be saved to file, after converting
+        back the token-ids to strings. Otherwise, it will not be saved.
+    :return: a list of the generated pmi masking vocabulary (ngrams are represented with token ids).
+    """
     # TODO: add checkpoints? so we can resume if we were interrupted?
     # TODO: add some way to show progress. running this on a large dataset can take a lot of time.
     logger.info(f'start experiment: {experiment_config.name}')
@@ -89,11 +84,3 @@ def run_pipeline(experiment_config: ExperimentConfig, clean_up: bool = True,
     logger.info(f'end experiment: {experiment_config.name}')
 
     return pmi_masking_vocab
-
-
-if __name__ == '__main__':
-    from experiment_config import medium_size_bookcorpus
-    from experiment_config import bookcorpus
-
-    run_pipeline(medium_size_bookcorpus.config)
-    run_pipeline(bookcorpus.config)

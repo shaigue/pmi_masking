@@ -12,6 +12,7 @@ from src.utils import Ngram, validate_ngram_size_to_vocab_percent, compute_numbe
 
 def count_total_ngrams_per_size(tokenized_samples: list[list[int]], max_ngram_size: int) -> dict[int, int]:
     """Counts how many ngrams of each size there are in the input samples.
+
     :param tokenized_samples: sequences of tokens
     :param max_ngram_size: the maximal ngram size to consider
     :return: a dictionary mapping from ngram_size to the number of ngrams of that size in the input sequences.
@@ -27,6 +28,7 @@ def count_total_ngrams_per_size(tokenized_samples: list[list[int]], max_ngram_si
 
 def count_ngrams(tokenized_samples: list[list[int]], max_ngram_size: int) -> dict[Ngram, int]:
     """Counts individual ngrams in the input.
+
     :param tokenized_samples: the tokenized input sequences.
     :param max_ngram_size: the maximal ngram size to consider
     :return: dictionary mapping from ngram to the number of times it appears in the input.
@@ -43,6 +45,7 @@ def count_ngrams(tokenized_samples: list[list[int]], max_ngram_size: int) -> dic
 def compute_log_likelihood(ngram_to_count: dict[Ngram, int],
                            total_ngrams_per_size: dict[int, int]) -> dict[Ngram, float]:
     """Computes the log likelihood of ngrams.
+
     :param ngram_to_count: dictionary mapping from ngrams to the number of times that they appear in the corpus.
     :param total_ngrams_per_size: dictionary mapping ngram sizes to the number of ngrams of that size.
     :return: a dictionary mapping ngrams to their log likelihood.
@@ -60,6 +63,7 @@ def iter_ngram_segmentations(ngram: Ngram) -> Iterable[list[Ngram]]:
     """Iterates through all possible segmentations of a given ngram, not including the identity segmentation.
     a segmentation of an ngram is way to split the ngram into smaller ngrams.
     for example, [(1, 2), (3,)] is one possible segmentations of (1, 2, 3).
+
     :param ngram: ngram to segment.
     :return: iterable that yields the possible segmentation, each is a list with sub-ngrams.
     """
@@ -82,6 +86,7 @@ def iter_ngram_segmentations(ngram: Ngram) -> Iterable[list[Ngram]]:
 
 def compute_max_segmentation_log_likelihood_sum(ngram_to_log_likelihood: dict[Ngram, float]) -> dict[Ngram, float]:
     """Computes the maximum log likelihood sum over all segmentation of an ngram, for every ngram of size >= 2
+
     :param ngram_to_log_likelihood: dictionary mapping from ngrams to their log likelihood
     :return: dictionary mapping from ngram to it's max segmentation log likelihood sum value.
     """
@@ -97,7 +102,11 @@ def compute_max_segmentation_log_likelihood_sum(ngram_to_log_likelihood: dict[Ng
 
 
 def split_ngrams_by_size(ngrams: Iterable[Ngram]) -> dict[int, list[Ngram]]:
-    # no need to docstring
+    """Splits the ngrams by their size.
+
+    :param ngrams: iterable that yields ngrams.
+    :return: mapping from ngram size to list of ngrams of that size in the input ngrams.
+    """
     ngrams_by_size = defaultdict(list)
     for ngram in ngrams:
         ngrams_by_size[len(ngram)].append(ngram)
@@ -128,13 +137,18 @@ def compute_max_segmentation_log_likelihood_sum_dynamic_programming(ngram_to_log
 
 
 def pmi_score(log_likelihood: float, max_segmentation_log_likelihood_sum: float) -> float:
-    """The formula for pmi score (after pushing the log inside)"""
+    """Computes the pmi score of an ngram (after pushing the log inside)
+
+    Note that this is the formula mentioned in the repo https://github.com/AI21Labs/pmi-masking and is different
+    from the formula mentioned in the paper https://arxiv.org/abs/2010.01825.
+    """
     return 2 * log_likelihood - max_segmentation_log_likelihood_sum
 
 
 def compute_pmi_score(ngram_to_log_likelihood: dict[Ngram, float],
                       ngram_to_max_segmentation_log_likelihood_sum: dict[Ngram, float]) -> dict[Ngram, float]:
     """Computes the pmi scores of ngrams.
+
     :param ngram_to_log_likelihood: dictionary mapping ngrams to their log_likelihood scores.
     :param ngram_to_max_segmentation_log_likelihood_sum: dictionary mapping ngrams to their maximal segmentation log
         likelihood sum.
@@ -152,6 +166,7 @@ def compute_pmi_score(ngram_to_log_likelihood: dict[Ngram, float],
 def compute_pmi_masking_vocab(ngram_to_pmi_score: dict[Ngram, float], vocab_size: int,
                               ngram_size_to_vocab_percent: dict[int, float]) -> list[Ngram]:
     """Computes the pmi masking vocabulary.
+
     :param ngram_to_pmi_score: dictionary mapping ngrams to their pmi scores
     :param vocab_size: the size of the resulting vocabulary.
     :param ngram_size_to_vocab_percent: dictionary mapping ngrams size to the percentage of ngrams of that size in the
@@ -182,6 +197,7 @@ def compute_pmi_masking_vocab(ngram_to_pmi_score: dict[Ngram, float], vocab_size
 
 def run_pipeline_naive(configuration: ExperimentConfig) -> dict:
     """Computes a pmi masking vocabulary from a tokenized dataset.
+
     :param configuration: the experiment experiment_config.
     :return: a dictionary containing the intermediate results of the pipeline, for testing the db based implementation.
     """

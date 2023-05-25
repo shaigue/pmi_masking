@@ -1,19 +1,20 @@
-"""Module for aggregating batch counts to a single database"""
 from pathlib import Path
 
 import duckdb
 
 from src.db_implementation import fields
+from src.db_implementation.fields import get_token_field_name, get_field_sql_type
 from src.utils import get_module_logger
-from src.db_implementation.utils import get_token_field_declaration_str, get_count_field_declaration_str, \
-    get_ngram_table_name, get_token_fields_str
+from src.db_implementation.utils import get_ngram_table_name, get_token_fields_str
 
 logger = get_module_logger(__name__)
 
 
 def get_create_table_query(ngram_size: int) -> str:
     """Generates a query that creates a new table with a column for each token in the ngram
-    in its total count. A different table should be created for every ngram size.
+    and the number of times (count) that this ngram appears in the dataset.
+     Different table is created for every ngram size.
+
     :param ngram_size: size of the ngrams in this table
     :returns: a string of SQL query to be executed.
     """
@@ -32,6 +33,7 @@ def get_merge_and_add_counts_query(ngram_size: int, table_to_insert: str) -> str
     """Generates an SQL query that inserts the table named `table_to_insert` that contains batch ngram counts into
     the table with the aggregated counts of the given ngram size. If an ngram is already present in the table,
     it adds the two count values.
+
     :param ngram_size: the size of the ngrams.
     :param table_to_insert: name of the table to insert
     :returns: an SQL query to execute
@@ -47,6 +49,7 @@ def get_merge_and_add_counts_query(ngram_size: int, table_to_insert: str) -> str
 def aggregate_ngram_counts(save_dir: Path, db_connection: duckdb.DuckDBPyConnection, max_ngram_size: int) -> None:
     """Collects all the batch counts from `save_dir` and aggregates them to a single database.
     each ngram size gets a separate table.
+
     :param save_dir: the directory where the ngram counts where saved. expects this
         directory to have a subdirectory for every ngram size, e.g., subdirectory '4' for
         counts of ngrams of size 4.
@@ -79,3 +82,12 @@ def aggregate_ngram_counts(save_dir: Path, db_connection: duckdb.DuckDBPyConnect
         logger.info(f'end ngram_size: {ngram_size}, table size {table_size}')
 
     logger.info('end')
+
+
+def get_token_field_declaration_str(token_i: int) -> str:
+    token_field_name = get_token_field_name(token_i)
+    return f'{token_field_name} {get_field_sql_type(token_field_name)}'
+
+
+def get_count_field_declaration_str() -> str:
+    return f'{fields.COUNT} {get_field_sql_type(fields.COUNT)}'
