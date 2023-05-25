@@ -84,4 +84,3 @@ Running the program on large datasets might take a while.
 Logging messages will be printed to console and to the file `log.log`.
 Those logs can be used for measuring times after the run is complete,
 or to track progress while the program is running.
-
