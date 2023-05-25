@@ -20,7 +20,7 @@ if __name__ == '__main__':
     parser.add_argument('--experiment_config', choices=experiment_config_options)
     args = parser.parse_args()
     experiment_config_name = args.experiment_config
-    logger.info(f'running pipeline with experiment_config: {experiment_config_name}')
+    logger.info(f'start experiment_config: {experiment_config_name}')
     experiment_config = import_module(f'experiment_config.{experiment_config_name}').config
     run_pipeline(experiment_config)
-    logger.info(f'pipline finished')
+    logger.info(f'end experiment_config: {experiment_config_name}')
