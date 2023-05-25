@@ -1,6 +1,8 @@
 # pmi_masking
 This repository contains code that takes a text corpus and creates a PMI masking vocabulary for it.
 
+## Creating a PMI masking vocabulary for a specific dataset
+
 ## Creating virtual environment
 Make sure you have the latest pip:
 ```commandline

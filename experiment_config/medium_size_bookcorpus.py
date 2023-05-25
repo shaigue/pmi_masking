@@ -1,4 +1,4 @@
-from experiment_config.experiement_config import ExperimentConfig
+from src.experiment_config import ExperimentConfig
 
 config = ExperimentConfig(
     name='medium_size_bookcorpus',

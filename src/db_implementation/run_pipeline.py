@@ -1,7 +1,7 @@
 import shutil
 
 import config
-from experiment_config.experiement_config import ExperimentConfig
+from src.experiment_config import ExperimentConfig
 from src.db_implementation.compute_log_likelihood import compute_log_likelihood
 from src.db_implementation.aggregate_ngram_counts import aggregate_ngram_counts
 from src.db_implementation.compute_max_segmentation_log_likelihood_sum import compute_max_segmentation_log_likelihood_sum
