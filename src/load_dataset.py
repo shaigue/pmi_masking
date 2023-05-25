@@ -25,6 +25,7 @@ def load_and_tokenize_dataset(dataset_name: str, tokenizer_name: str, n_workers:
     elif dataset_name == 'wikipedia':
         dataset = load_wikipedia_dataset()
     elif dataset_name == 'bookcorpus+wikipedia':
+        # TODO: this should be tested on a large enough machine that has enough disk space
         bookcorpus = load_bookcorpus_dataset()
         wiki = load_wikipedia_dataset()
         wiki = wiki.remove_columns([col for col in wiki.column_names if col != "text"])
