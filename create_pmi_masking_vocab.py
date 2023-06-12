@@ -8,11 +8,10 @@ from src.utils import get_module_logger, get_available_cpus_count
 
 logger = get_module_logger(__name__)
 # TODO: move all parameters and input validation to here
-# TODO: use the help flag on this script, and check if the output is useful
+# TODO: pass arguments down the line explicitly. don't use a special config dataclass. I think this is simplest.
 # TODO: delete the experiment config object? or maybe only use it internally?
 # TODO: I want to hide the warning when loading transformers about not having pytorch
 #   installed.
-# TODO: go over the `help` parameters and make sure It is clear.
 
 
 def get_experiment_config_options() -> list[str]:
@@ -24,7 +23,6 @@ def get_experiment_config_options() -> list[str]:
 
 def get_parser() -> ArgumentParser:
     parser = ArgumentParser()
-    # TODO: pass arguments down the line explicitly. don't use a special config dataclass. I think this is simplest.
 
     # methods for input validation.
     def min_value_int_type(min_value: int) -> Callable[[str], int]:
