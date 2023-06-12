@@ -30,7 +30,6 @@ class ExperimentConfig:
     dataset_name: str = 'bookcorpus'
     n_samples: int = None
     tokenizer_name: str = 'default'
-    # TODO: add parameter to randomly sample the dataset.
     # pmi_masking parameters
     max_ngram_size: int = 5
     min_count_threshold: int = 10
