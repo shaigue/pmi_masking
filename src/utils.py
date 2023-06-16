@@ -49,23 +49,6 @@ def get_file_size_bytes(file: Path) -> int:
     return file.stat().st_size
 
 
-def validate_ngram_size_to_vocab_percent(ngram_size_to_vocab_percent: dict[int, float]) -> None:
-    """Validates that the total percentage sums up to 100 and that there are no ngrams of size 1.
-
-    :param ngram_size_to_vocab_percent: mapping from ngram size to the percentage of ngrams of that size
-     in the final pmi masking vocabulary.
-    :raises: ValueError if not valid.
-    """
-    if 1 in ngram_size_to_vocab_percent.keys():
-        raise ValueError('there should not be ngrams of size 1 in the vocabulary. '
-                         f'input suggests that there should be {ngram_size_to_vocab_percent[1]}% ngrams of size 1.')
-
-    total_percent = sum(ngram_size_to_vocab_percent.values())
-    if total_percent != 100:
-        raise ValueError(f'the total percents should sum up to 100. '
-                         f'input: {ngram_size_to_vocab_percent} sums to {total_percent}.')
-
-
 def compute_number_of_ngrams_per_size_in_vocab(ngram_size_to_vocab_percent: dict[int, float],
                                                vocab_size: int) -> dict[int, int]:
     """Computes how many ngrams of each size there should be in the masking vocabulary.

@@ -61,6 +61,7 @@ class MyTestCase(unittest.TestCase):
             'ngram_count_batch_size': 1_000,
             'min_count_batch_threshold': 1,
             'n_workers': 1,
+            'tokenizer_batch_size': 4_000,
             'n_samples': 10_000,
         }
         pmi_masking_vocab_db = run_pipeline(**config, clean_up=False)

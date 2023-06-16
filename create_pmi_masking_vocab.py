@@ -1,27 +1,15 @@
 from argparse import ArgumentParser, Namespace, ArgumentTypeError
 from collections.abc import Callable
-from importlib import import_module
 
-import config
 from src.db_implementation.run_pipeline import run_pipeline
 from src.utils import get_module_logger, get_available_cpus_count
 
 logger = get_module_logger(__name__)
-# TODO: move all parameters and input validation to here
-# TODO: pass arguments down the line explicitly. don't use a special config dataclass. I think this is simplest.
-# TODO: delete the experiment config object? or maybe only use it internally?
-# TODO: I want to hide the warning when loading transformers about not having pytorch
-#   installed.
-
-
-def get_experiment_config_options() -> list[str]:
-    """Returns a list of all the available options for experiment config."""
-    experiment_config_dir = config.EXPERIMENT_CONFIG_DIR
-    config_name_options = [file.stem for file in experiment_config_dir.iterdir() if file.suffix == '.py']
-    return config_name_options
 
 
 def get_parser() -> ArgumentParser:
+    """Returns the argument parser for the module. Defines the CLI arguments, and their types.
+     Any input validation that does not depend on other values is done here"""
     parser = ArgumentParser()
 
     # methods for input validation.
@@ -42,7 +30,7 @@ def get_parser() -> ArgumentParser:
 
     parser.add_argument(
         '--experiment_name',
-        help='experiment name. affects logging and resulting file names',
+        help='experiment experiment_name. affects logging and resulting file names',
         type=str,
         required=True
     )
@@ -121,6 +109,12 @@ def get_parser() -> ArgumentParser:
         default=get_available_cpus_count()
     )
     parser.add_argument(
+        '--tokenizer_batch_size',
+        help='batch size for the tokenization step',
+        type=positive_int,
+        default=1_000_000,
+    )
+    parser.add_argument(
         '--n_samples',
         help='if provided, only the first `n_samples` samples of '
              'the dataset will be used. if not, the entire dataset will be used. '
@@ -132,6 +126,7 @@ def get_parser() -> ArgumentParser:
 
 
 def validate_arguments(parser: ArgumentParser, args: Namespace) -> None:
+    """Checks inter-dependent input values."""
     ngram_size_to_vocab_percent = args.ngram_size_to_vocab_percent
     expected_len = args.max_ngram_size - 1
     if len(args.ngram_size_to_vocab_percent) != expected_len:
@@ -140,29 +135,30 @@ def validate_arguments(parser: ArgumentParser, args: Namespace) -> None:
     if sum(ngram_size_to_vocab_percent) != 100:
         parser.error(f'ngram_size_to_vocab_percent should sum to 100. {ngram_size_to_vocab_percent} '
                      f'sums to {sum(ngram_size_to_vocab_percent)}')
+
     if args.min_count_threshold <= args.min_count_batch_threshold:
         parser.error(f'min_count_threshold should be greater than min_count_batch_threshold. '
                      f'got min_count_threshold={args.min_count_threshold} and '
                      f'min_count_batch_threshold={args.min_count_batch_threshold}')
 
 
+def transform_ngram_size_to_vocab_percent_to_dict(args: Namespace) -> Namespace:
+    """Converts the percentage of ngrams of each size from a list to a dictionary,
+    mapping ngram size to it's percentage"""
+    args.ngram_size_to_vocab_percent = {
+        ngram_size: percent
+        for ngram_size, percent in enumerate(args.ngram_size_to_vocab_percent, 2)
+    }
+    return args
+
+
 def main():
     parser = get_parser()
     args = parser.parse_args()
     validate_arguments(parser, args)
-    print(args)
-
-
-def old_main():
-    parser = ArgumentParser()
-    experiment_config_options = get_experiment_config_options()
-    parser.add_argument('--experiment_config', choices=experiment_config_options)
-    args = parser.parse_args()
-    experiment_config_name = args.experiment_config
-    logger.info(f'start experiment_config: {experiment_config_name}')
-    experiment_config = import_module(f'experiment_config.{experiment_config_name}').config
-    run_pipeline(experiment_config)
-    logger.info(f'end experiment_config: {experiment_config_name}')
+    args = transform_ngram_size_to_vocab_percent_to_dict(args)
+    logger.info(f'running pipeline with arguments: {args}')
+    run_pipeline(**args.__dict__)
 
 
 if __name__ == '__main__':

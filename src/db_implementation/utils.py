@@ -5,7 +5,6 @@ import duckdb
 
 import config
 from src.db_implementation.fields import get_token_field_name
-from src.experiment_config import ExperimentConfig
 
 
 def get_ngram_table_name(ngram_size: int) -> str:
@@ -47,5 +46,5 @@ def get_save_dir(experiment_name: str):
     return config.DATA_DIR / experiment_name
 
 
-def get_vocab_file(experiment_config: ExperimentConfig) -> Path:
-    return config.VOCABS_DIR / f'{experiment_config.name}.txt'
+def get_vocab_file(experiment_name: str) -> Path:
+    return config.VOCABS_DIR / f'{experiment_name}.txt'
