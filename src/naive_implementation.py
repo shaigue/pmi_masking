@@ -1,13 +1,11 @@
 import itertools
 from collections import Counter, defaultdict
 from math import log
-from typing import Iterable
+from typing import Iterable, Optional
 
-from src.experiment_config import ExperimentConfig
 from src.db_implementation import fields
 from src.load_dataset import load_and_tokenize_dataset
-from src.utils import Ngram, validate_ngram_size_to_vocab_percent, compute_number_of_ngrams_per_size_in_vocab, \
-    prune_low_count_ngrams
+from src.utils import Ngram, compute_number_of_ngrams_per_size_in_vocab, prune_low_count_ngrams
 
 
 def count_total_ngrams_per_size(tokenized_samples: list[list[int]], max_ngram_size: int) -> dict[int, int]:
@@ -175,7 +173,6 @@ def compute_pmi_masking_vocab(ngram_to_pmi_score: dict[Ngram, float], vocab_size
         ngrams of size 2, 30% ngrams of size 3 and 40% ngrams of size 4.
     :return: list containing the ngrams selected to go into the masking vocabulary.
     """
-    validate_ngram_size_to_vocab_percent(ngram_size_to_vocab_percent)
     number_of_ngrams_per_size_in_vocab = compute_number_of_ngrams_per_size_in_vocab(ngram_size_to_vocab_percent,
                                                                                     vocab_size)
 
@@ -195,26 +192,29 @@ def compute_pmi_masking_vocab(ngram_to_pmi_score: dict[Ngram, float], vocab_size
     return masking_vocab
 
 
-def run_pipeline_naive(configuration: ExperimentConfig) -> dict:
+def run_pipeline_naive(experiment_name: str, dataset_name: str, tokenizer_name: str,
+                       max_ngram_size: int, min_count_threshold: int, vocab_size: int,
+                       ngram_size_to_vocab_percent: dict[int, float], ngram_count_batch_size: int,
+                       min_count_batch_threshold: int, n_workers: int, tokenizer_batch_size: int,
+                       n_samples: Optional[int]) -> dict:
     """Computes a pmi masking vocabulary from a tokenized dataset.
 
-    :param configuration: the experiment experiment_config.
+    To understand what each parameter does, refer to the function "db_implementation.run_pipeline.run_pipeline"
     :return: a dictionary containing the intermediate results of the pipeline, for testing the db based implementation.
     """
-    dataset = load_and_tokenize_dataset(dataset_name=configuration.dataset_name,
-                                        tokenizer_name=configuration.tokenizer_name, n_workers=configuration.n_workers,
-                                        n_samples=configuration.n_samples)
+    dataset = load_and_tokenize_dataset(dataset_name=dataset_name, tokenizer_name=tokenizer_name,
+                                        tokenizer_batch_size=tokenizer_batch_size, n_samples=n_samples)
     tokenized_samples = dataset['input_ids']
-    total_ngrams_per_size = count_total_ngrams_per_size(tokenized_samples, configuration.max_ngram_size)
-    ngram_to_count = count_ngrams(tokenized_samples, configuration.max_ngram_size)
-    ngram_to_count = prune_low_count_ngrams(ngram_to_count, configuration.min_count_threshold)
+    total_ngrams_per_size = count_total_ngrams_per_size(tokenized_samples, max_ngram_size)
+    ngram_to_count = count_ngrams(tokenized_samples, max_ngram_size)
+    ngram_to_count = prune_low_count_ngrams(ngram_to_count, min_count_threshold)
     ngram_to_log_likelihood = compute_log_likelihood(ngram_to_count, total_ngrams_per_size)
     ngram_to_max_segmentation_log_likelihood_sum = compute_max_segmentation_log_likelihood_sum(ngram_to_log_likelihood)
     ngram_to_pmi_score = compute_pmi_score(ngram_to_log_likelihood, ngram_to_max_segmentation_log_likelihood_sum)
     pmi_masking_vocab = compute_pmi_masking_vocab(
         ngram_to_pmi_score,
-        configuration.vocab_size,
-        configuration.ngram_size_to_vocab_percent,
+        vocab_size,
+        ngram_size_to_vocab_percent,
     )
     return {
         'total_ngrams_per_size': total_ngrams_per_size,

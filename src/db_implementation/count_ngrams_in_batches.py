@@ -84,6 +84,52 @@ def convert_ngram_counter_to_pa_table(counter: dict[Ngram, int], ngram_size: int
     return table
 
 
+def get_batch_ngram_counts_file(ngram_size: int, start: int, end: int, save_dir: Path) -> Path:
+    """Returns a path to a file in which we want to save the counts to.
+
+    :param ngram_size: size of the ngrams counted
+    :param start: the start index of the batch
+    :param end: the end index of the batch
+    :param save_dir: the directory where all the data is stored
+    :return: path to a file for saving the ngram counts of a specific batch
+    """
+    save_dir_per_size = save_dir / str(ngram_size)
+    save_dir_per_size.mkdir(parents=True, exist_ok=True)
+    path = save_dir_per_size / f'count_table_{start}-{end}.parquet'
+    return path
+
+
+def count_ngrams_in_batch_and_save_to_file(batch: dict[str, list], indices: list[int], max_ngram_size: int,
+                                           filter_ngram_count_threshold: int, save_dir: Path) -> None:
+    """Counts ngrams in a batch and saves the results to a file.
+
+    :param batch: a single batch.
+    :param indices: start and end indices of the batch
+    :param max_ngram_size: maximal ngram size to count
+    :param filter_ngram_count_threshold: prune ngrams that occur less than this amount in the batch
+    :param save_dir: path to a directory where data will be stored.
+    """
+    start, end = indices[0], indices[-1]
+    logger.info(f'start samples {start}-{end}, memory status - {get_memory_stats_str()}')
+
+    input_ids = batch['input_ids']
+    ngram_size_to_counter = count_ngrams_in_batch(input_ids, max_ngram_size)
+
+    for ngram_size, ngram_counter in ngram_size_to_counter.items():
+        ngram_counter = prune_low_count_ngrams(ngram_counter, filter_ngram_count_threshold)
+        ngram_counts_table = convert_ngram_counter_to_pa_table(ngram_counter, ngram_size)
+        batch_ngram_counts_file = get_batch_ngram_counts_file(ngram_size, start, end, save_dir)
+        pq.write_table(ngram_counts_table, str(batch_ngram_counts_file))
+        batch_ngram_counts_file_size_bytes = get_file_size_bytes(batch_ngram_counts_file)
+        logger.info(f'samples {start}-{end}, ngram size {ngram_size}, '
+                    f'parquet file size: {batch_ngram_counts_file_size_bytes}')
+
+    counter_size_bytes = recursive_total_size_bytes(ngram_size_to_counter)
+    logger.info(f'end samples {start}-{end}, '
+                f'counter size: {space_str(counter_size_bytes)}, '
+                f'memory status - {get_memory_stats_str()}')
+
+
 def count_ngrams_in_batches_and_save_to_file(dataset: Dataset, n_workers: int,
                                              ngram_count_batch_size: int, max_ngram_size: int,
                                              filter_ngram_count_threshold: int, save_dir: Path) -> None:
@@ -98,39 +144,17 @@ def count_ngrams_in_batches_and_save_to_file(dataset: Dataset, n_workers: int,
         be saved.
     :param save_dir: directory to save the resulting files
     """
-    def count_ngrams_in_batch_and_save_to_file(batch: dict[str, list], indices: list[int]) -> None:
-        start, end = indices[0], indices[-1]
-        logger.info(f'start samples {start}-{end}, memory status - {get_memory_stats_str()}')
-
-        input_ids = batch['input_ids']
-        ngram_size_to_counter = count_ngrams_in_batch(input_ids, max_ngram_size)
-
-        for ngram_size, ngram_counter in ngram_size_to_counter.items():
-            ngram_counter = prune_low_count_ngrams(ngram_counter, filter_ngram_count_threshold)
-            ngram_counts_table = convert_ngram_counter_to_pa_table(ngram_counter, ngram_size)
-            batch_ngram_counts_file = get_batch_ngram_counts_file(ngram_size, start, end)
-            pq.write_table(ngram_counts_table, str(batch_ngram_counts_file))
-            batch_ngram_counts_file_size_bytes = get_file_size_bytes(batch_ngram_counts_file)
-            logger.info(f'samples {start}-{end}, ngram size {ngram_size}, '
-                        f'parquet file size: {batch_ngram_counts_file_size_bytes}')
-
-        counter_size_bytes = recursive_total_size_bytes(ngram_size_to_counter)
-        logger.info(f'end samples {start}-{end}, '
-                    f'counter size: {space_str(counter_size_bytes)}, '
-                    f'memory status - {get_memory_stats_str()}')
-
-    def get_batch_ngram_counts_file(ngram_size, start, end):
-        save_dir_per_size = save_dir / str(ngram_size)
-        save_dir_per_size.mkdir(parents=True, exist_ok=True)
-        path = save_dir_per_size / f'count_table_{start}-{end}.parquet'
-        return path
-
     dataset.map(
         count_ngrams_in_batch_and_save_to_file,
         with_indices=True,
         batched=True,
         batch_size=ngram_count_batch_size,
-        num_proc=n_workers
+        num_proc=n_workers,
+        fn_kwargs={
+            'max_ngram_size': max_ngram_size,
+            'filter_ngram_count_threshold': filter_ngram_count_threshold,
+            'save_dir': save_dir
+        }
     )
 
 

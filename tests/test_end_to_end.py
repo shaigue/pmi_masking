@@ -11,12 +11,13 @@ from src.db_implementation.run_pipeline import run_pipeline
 from src.utils import Ngram
 from src.db_implementation.utils import get_ngram_table_name, get_token_fields_str, read_total_ngrams_per_size, \
     open_db_connection, get_save_dir
-from experiment_config.end_to_end_test import config as end_to_end_test_config
 
 
 class MyTestCase(unittest.TestCase):
+    experiment_name = 'end_to_end_test'
+
     def setUp(self) -> None:
-        self.save_dir = get_save_dir(end_to_end_test_config.name)
+        self.save_dir = get_save_dir(self.experiment_name)
 
     def tearDown(self) -> None:
         shutil.rmtree(self.save_dir, ignore_errors=True)
@@ -49,8 +50,22 @@ class MyTestCase(unittest.TestCase):
         self.assertDictAlmostEqual(naive_result[column], db_result)
 
     def test_end_to_end(self):
-        pmi_masking_vocab_db = run_pipeline(end_to_end_test_config, clean_up=False)
-        naive_result = run_pipeline_naive(end_to_end_test_config)
+        config = {
+            'experiment_name': self.experiment_name,
+            'dataset_name': 'bookcorpus',
+            'tokenizer_name': 'default',
+            'max_ngram_size': 5,
+            'min_count_threshold': 5,
+            'vocab_size': 1_000,
+            'ngram_size_to_vocab_percent': {2: 50, 3: 25, 4: 12.5, 5: 12.5},
+            'ngram_count_batch_size': 1_000,
+            'min_count_batch_threshold': 1,
+            'n_workers': 1,
+            'tokenizer_batch_size': 4_000,
+            'n_samples': 10_000,
+        }
+        pmi_masking_vocab_db = run_pipeline(**config, clean_up=False)
+        naive_result = run_pipeline_naive(**config)
 
         total_ngrams_per_size_db = read_total_ngrams_per_size(self.save_dir)
         self.assertDictEqual(naive_result['total_ngrams_per_size'], total_ngrams_per_size_db)

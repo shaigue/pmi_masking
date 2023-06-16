@@ -1,0 +1,1 @@
+python create_pmi_masking_vocab.py --experiment_name bookcorpus_medium --dataset_name bookcorpus --n_samples 30000000  --min_count_batch_threshold 2
