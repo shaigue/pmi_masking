@@ -1,9 +1,6 @@
 # PMI Masking
-This repository contains code that takes a text dataset and creates a PMI masking vocabulary for it.
-
-## Overview
-Pure Python implementation of the procedure for creating PMI masking vocabulary based 
-on this [paper](https://arxiv.org/abs/2010.01825) by AI21 Labs.
+Python implementation of the procedure for creating PMI masking vocabulary based 
+on the [paper](https://arxiv.org/abs/2010.01825) by AI21 Labs.
 
 The main problem that arises while computing PMI masking vocabulary for large 
 datasets is the large number of ngrams, which results in large memory requirements.
@@ -11,15 +8,16 @@ In order to process the larger-than-RAM ngram data,
 we use [DuckDB](https://duckdb.org/) in our implementation. 
 
 
-## How To Run
-### Step 1: clone the repo
+## Instructions
+
+### Setup
+#### Clone the repo
 - Enter the directory where you want to clone the repository to
 - Create GitHub SSH keys to enable cloning the repo (https://docs.github.com/en/authentication/connecting-to-github-with-ssh/generating-a-new-ssh-key-and-adding-it-to-the-ssh-agent?platform=linux)
 - Clone the repo with SSH
 - CD into the repo's directory
 
-
-### Step 2: Set up environment
+#### Environment
 Make sure you have the latest pip:
 ```commandline
 python3 -m pip install --upgrade pip
@@ -51,36 +49,127 @@ you should install an IPython kernel:
 python3 -m ipykernel install --user --name pmi_masking --display-name "Python (pmi_masking)"
 ```
 
-
-### Step 3: Run tests 
-All the tests should pass.
+#### Run tests
+To verify sure that the setup is successful, run tests: 
 ```commandline
 python3 -m unittest discover -s tests 
 ```
 
-### Step 4: Run with specific configurations
-- An experiment configuration is an object of type
-`ExperimentConfig` [source](src/experiment_config.py).
+### Running
+To run the program and create a PMI masking vocabulary,
+use the script [create_pmi_masking_vocab.py](create_pmi_masking_vocab.py).
+Running the script with the `--help` flag gives information on the 
+arguments and how to run it:
 
-- All experiment configurations are located in the directory `experiment_config`, as 
-`.py` files containing a `config` object that is an instance of `ExperimentConfig`.
-You can use one of the existing configuration 
-('bookcorpus', 'bookcorpus_and_wikipedia', ...) or
-create your own (you can use an existing one as a reference).
-
-To run the program with the experiment configuration of your choice,
-run:
 ```commandline
-python3 create_pmi_masking_vocab.py --experiment_config="your experiment config"
+usage: create_pmi_masking_vocab.py [-h] --experiment_name EXPERIMENT_NAME
+                                   --dataset_name
+                                   {bookcorpus,wikipedia,bookcorpus+wikipedia}
+                                   [--tokenizer_name {bert-base-uncased}]
+                                   [--max_ngram_size MAX_NGRAM_SIZE]
+                                   [--min_count_threshold MIN_COUNT_THRESHOLD]
+                                   [--vocab_size VOCAB_SIZE]
+                                   [--ngram_size_to_vocab_percent NGRAM_SIZE_TO_VOCAB_PERCENT [NGRAM_SIZE_TO_VOCAB_PERCENT ...]]
+                                   [--ngram_count_batch_size NGRAM_COUNT_BATCH_SIZE]
+                                   [--min_count_batch_threshold MIN_COUNT_BATCH_THRESHOLD]
+                                   [--n_workers N_WORKERS]
+                                   [--tokenizer_batch_size TOKENIZER_BATCH_SIZE]
+                                   [--n_samples N_SAMPLES]
+
+Main script for this project. Creates a PMI-masking vocabulary for a dataset.
+Resulting vocabulary is saved as text file named `<experiment_name>.txt` in
+the directory `pmi_masking_vocabs`. Each line is an n-gram in the PMI-masking
+vocabulary. Only supports datasets specified in the `dataset_name` argument.
+To add support for other datasets, write a function that loads the dataset in
+the file `src/load_dataset.py` and add an entry with the new dataset name as
+the key to the dictionary returned by the function
+`get_dataset_name_to_load_function()` in that file. Support is automatically
+added to this script. Only supports tokenizers specified in the
+`tokenizer_name` argument. The process for adding a tokenizer is similar to
+adding a dataset. To add support for other tokenizers, write a function that
+loads the tokenizer in the file `src/load_tokenizer.py` and add an entry with
+the new tokenizer name as the key to the dictionary returned by the function
+`get_tokenizer_name_to_load_function()` in that file. Support is automatically
+added to this script.
+
+options:
+  -h, --help            show this help message and exit
+  --experiment_name EXPERIMENT_NAME
+                        experiment experiment_name. affects logging and
+                        resulting file names
+  --dataset_name {bookcorpus,wikipedia,bookcorpus+wikipedia}
+                        determines which dataset to use
+  --tokenizer_name {bert-base-uncased}
+                        which tokenizer to use
+  --max_ngram_size MAX_NGRAM_SIZE
+                        maximum ngram size to consider
+  --min_count_threshold MIN_COUNT_THRESHOLD
+                        prunes ngrams that appear less than this amount in the
+                        entire dataset
+  --vocab_size VOCAB_SIZE
+                        number of ngrams (excluding unigrams) to select for
+                        the PMI masking vocabulary
+  --ngram_size_to_vocab_percent NGRAM_SIZE_TO_VOCAB_PERCENT [NGRAM_SIZE_TO_VOCAB_PERCENT ...]
+                        percentage of ngram size to include in the resulting
+                        vocabulary. this should be a list of values, one for
+                        each ngram size, from 2 to `max_ngram_size`. for
+                        example, `--ngram_size_to_vocab_percent 50 25 12.5
+                        12.5` means that the resulting vocabulary will contain
+                        50% ngrams of size 2, 25% ngrams of size 3, 12.5%
+                        ngrams of size 4 and 12.5% ngrams of size 5. values
+                        should sum up to 100% and every ngram should get a
+                        positive value
+  --ngram_count_batch_size NGRAM_COUNT_BATCH_SIZE
+                        ngrams are first counted in batches instead of the
+                        entire dataset, for parallelization. this is the
+                        number of samples that goes into each batch. if value
+                        is too high, counts will not fit into memory and this
+                        will slow the program. low values will create a lot of
+                        context switches and will also slow down the program
+  --min_count_batch_threshold MIN_COUNT_BATCH_THRESHOLD
+                        ngrams that occur less than this amount in a batch
+                        will be pruned from that batch counts. value of 1
+                        means that all the ngrams that appear in a batch will
+                        be counted, and value of 2 means that ngrams that
+                        appear only once in a batch will be pruned from that
+                        batch counts. since most ngrams appear once, using a
+                        value >= 2 can greatly reduce space and time
+                        requirements
+  --n_workers N_WORKERS
+                        number of workers to use. defaults to the number of
+                        available CPUs
+  --tokenizer_batch_size TOKENIZER_BATCH_SIZE
+                        batch size for the tokenization step
+  --n_samples N_SAMPLES
+                        if provided, only the first `n_samples` samples of the
+                        dataset will be used. if not, the entire dataset will
+                        be used. This argument is for testing and
+                        experimentation purposes
 ```
-where you should replace "your experiment config" with the configuration 
-file name without the `.py` suffix.
 
-
-If the run is successful, the resulting vocabulary will be placed in `pmi_masking_vocabs` directory.
+Note that only a limited set of tokenizers and 
+datasets are supported. Instructions on how to add support for new tokenizers/datasets appear
+at the beginning of the help message.
 
 #### Logging
-Running the program on large datasets might take a while.
-Logging messages will be printed to console and to the file `log.log`.
-Those logs can be used for measuring times after the run is complete,
-or to track progress while the program is running.
+Running the program on a large dataset might take
+a while.
+Logging messages will be printed to console and to the 
+file `log.log`.
+Use this logs to measure progress.
+
+#### Program stages
+The stages of the programs are:
+1. `count_ngrams_in_batches` - splits the dataset into batches and counts ngrams 
+in each batch.
+2. `aggregate_ngram_counts` - aggregates the counts from the batches into a single database.
+this step takes the longest.
+3. `prune_low_count_ngrams` - prunes ngrams that occur in the dataset less than a given 
+number of times.
+4. `compute_log_likelihood` - computes the log likelihood scores of the 
+ngrams.
+5. `compute_max_segmentation_log_likelihood_sum` - computes an intermediate value that will 
+be used for computing the PMI scores.
+6. `compute_pmi_score` - computes the PMI scores for ngrams
+7. `compute_pmi_masking_vocab` - takes the ngrams with the highest PMI scores
+and creates the PMI-masking vocabulary.

@@ -9,7 +9,7 @@ from src.db_implementation.compute_pmi_masking_vocab import compute_pmi_masking_
 from src.db_implementation.compute_pmi_score import compute_pmi_score
 from src.db_implementation.count_ngrams_in_batches import count_ngrams_in_batches
 from src.db_implementation.prune_low_count_ngrams import prune_low_count_ngrams
-from src.get_tokenizer import get_tokenizer
+from src.load_tokenizer import load_tokenizer
 from src.load_dataset import load_and_tokenize_dataset
 from src.utils import get_module_logger, get_file_size_bytes, Ngram
 from src.db_implementation.utils import read_total_ngrams_per_size, get_db_path, open_db_connection, get_save_dir, \
@@ -83,7 +83,7 @@ def run_pipeline(experiment_name: str, dataset_name: str, tokenizer_name: str,
         shutil.rmtree(save_dir, ignore_errors=True)
 
     if save_vocab_to_file:
-        tokenizer = get_tokenizer(tokenizer_name)
+        tokenizer = load_tokenizer(tokenizer_name)
         lines = tokenizer.batch_decode(pmi_masking_vocab)
         vocab_file = get_vocab_file(experiment_name)
         with vocab_file.open('w') as f:

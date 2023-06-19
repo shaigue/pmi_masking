@@ -1,9 +1,13 @@
+"""Module responsible for dataset loading"""
 from datasets import load_dataset, Dataset, concatenate_datasets
 from transformers import PreTrainedTokenizerBase
 
-from src.get_tokenizer import get_tokenizer
+from src.load_tokenizer import load_tokenizer
 
-__all__ = ['load_and_tokenize_dataset']
+__all__ = [
+    'load_and_tokenize_dataset',
+    'get_supported_dataset_names'
+]
 
 
 def load_bookcorpus_dataset() -> Dataset:
@@ -17,6 +21,28 @@ def load_wikipedia_dataset() -> Dataset:
     configuration_name = '20220301.en'
     split = 'train'
     return load_dataset(dataset_path, configuration_name, split=split)
+
+
+def load_bookcorpus_and_wikipedia_dataset():
+    # TODO: this should be tested on a large enough machine that has enough disk space
+    bookcorpus = load_bookcorpus_dataset()
+    wiki = load_wikipedia_dataset()
+    wiki = wiki.remove_columns([col for col in wiki.column_names if col != "text"])
+    assert bookcorpus.features.type == wiki.features.type
+    dataset = concatenate_datasets([bookcorpus, wiki])
+    return dataset
+
+
+def get_dataset_name_to_load_function() -> dict:
+    return {
+        'bookcorpus': load_bookcorpus_dataset,
+        'wikipedia': load_wikipedia_dataset,
+        'bookcorpus+wikipedia': load_bookcorpus_and_wikipedia_dataset,
+    }
+
+
+def get_supported_dataset_names() -> list[str]:
+    return list(get_dataset_name_to_load_function().keys())
 
 
 def tokenize_dataset(dataset: Dataset, tokenizer: PreTrainedTokenizerBase, tokenizer_batch_size: int) -> Dataset:
@@ -48,25 +74,17 @@ def load_and_tokenize_dataset(dataset_name: str, tokenizer_name: str, tokenizer_
     :param tokenizer_batch_size: batch size for the tokenizer.
     :return: The tokenized dataset.
     """
-    if dataset_name == 'bookcorpus':
-        dataset = load_bookcorpus_dataset()
-    elif dataset_name == 'wikipedia':
-        dataset = load_wikipedia_dataset()
-    elif dataset_name == 'bookcorpus+wikipedia':
-        # TODO: this should be tested on a large enough machine that has enough disk space
-        bookcorpus = load_bookcorpus_dataset()
-        wiki = load_wikipedia_dataset()
-        wiki = wiki.remove_columns([col for col in wiki.column_names if col != "text"])
-        assert bookcorpus.features.type == wiki.features.type
-        dataset = concatenate_datasets([bookcorpus, wiki])
-    else:
+    dataset_name_to_load_function = get_dataset_name_to_load_function()
+    if dataset_name not in dataset_name_to_load_function:
         raise NotImplementedError
+
+    dataset = dataset_name_to_load_function[dataset_name]()
 
     # TODO: add feature to take random samples of the dataset
     if n_samples is not None:
         dataset = dataset.select(range(n_samples))
 
-    tokenizer = get_tokenizer(tokenizer_name)
+    tokenizer = load_tokenizer(tokenizer_name)
     dataset = tokenize_dataset(dataset, tokenizer, tokenizer_batch_size)
 
     return dataset

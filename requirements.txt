@@ -5,6 +5,7 @@ psutil
 # for working with larger than memory data
 pyarrow
 duckdb
+
 # might not need those next ones for deployment
-matplotlib
-jupyter
+# matplotlib
+# jupyter

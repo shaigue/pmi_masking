@@ -53,7 +53,7 @@ class MyTestCase(unittest.TestCase):
         config = {
             'experiment_name': self.experiment_name,
             'dataset_name': 'bookcorpus',
-            'tokenizer_name': 'default',
+            'tokenizer_name': 'bert-base-uncased',
             'max_ngram_size': 5,
             'min_count_threshold': 5,
             'vocab_size': 1_000,

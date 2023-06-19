@@ -1,7 +1,26 @@
+"""
+Main script for this project.
+
+Creates a PMI-masking vocabulary for a dataset. Resulting vocabulary is saved as text file named `<experiment_name>.txt`
+in the directory `pmi_masking_vocabs`. Each line is an n-gram in the PMI-masking vocabulary.
+
+Only supports datasets specified in the `dataset_name` argument. To add support for other datasets,
+write a function that loads the dataset in the file `src/load_dataset.py` and add an entry with
+the new dataset name as the key to the dictionary returned by the function
+`get_dataset_name_to_load_function()` in that file. Support is automatically added to this script.
+
+Only supports tokenizers specified in the `tokenizer_name` argument. The process for adding a tokenizer
+is similar to adding a dataset. To add support for other tokenizers,
+write a function that loads the tokenizer in the file `src/load_tokenizer.py` and add an entry with
+the new tokenizer name as the key to the dictionary returned by the function
+`get_tokenizer_name_to_load_function()` in that file. Support is automatically added to this script.
+"""
 from argparse import ArgumentParser, Namespace, ArgumentTypeError
 from collections.abc import Callable
 
 from src.db_implementation.run_pipeline import run_pipeline
+from src.load_dataset import get_supported_dataset_names
+from src.load_tokenizer import get_supported_tokenizer_names
 from src.utils import get_module_logger, get_available_cpus_count
 
 logger = get_module_logger(__name__)
@@ -10,7 +29,7 @@ logger = get_module_logger(__name__)
 def get_parser() -> ArgumentParser:
     """Returns the argument parser for the module. Defines the CLI arguments, and their types.
      Any input validation that does not depend on other values is done here"""
-    parser = ArgumentParser()
+    parser = ArgumentParser(description=__doc__)
 
     # methods for input validation.
     def min_value_int_type(min_value: int) -> Callable[[str], int]:
@@ -34,21 +53,20 @@ def get_parser() -> ArgumentParser:
         type=str,
         required=True
     )
-    # TODO: choices here should come from the `load_dataset` module, and not duplicated here.
     parser.add_argument(
         '--dataset_name',
         help='determines which dataset to use',
         type=str,
-        choices=['bookcorpus', 'wikipedia', 'bookcorpus+wikipedia'],
+        choices=get_supported_dataset_names(),
         required=True
     )
-    # TODO: choices here should come from `load_tokenizer` module, and not duplicated here.
+    tokenizer_choices = get_supported_tokenizer_names()
     parser.add_argument(
         '--tokenizer_name',
-        help='tokenizer to use',
+        help='which tokenizer to use',
         type=str,
-        choices=['default'],
-        default='default',
+        choices=tokenizer_choices,
+        default=tokenizer_choices[0],
     )
     parser.add_argument(
         '--max_ngram_size',
@@ -68,8 +86,6 @@ def get_parser() -> ArgumentParser:
         type=positive_int,
         default=800_000,
     )
-    # TODO: I changed the format from dictionary to list. make sure down the line
-    #   is aware of that.
     parser.add_argument(
         '--ngram_size_to_vocab_percent',
         help='percentage of ngram size to include in the resulting vocabulary. '
