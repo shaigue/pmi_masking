@@ -190,3 +190,9 @@ be used for computing the PMI scores.
 6. `compute_pmi_score` - computes the PMI scores for ngrams
 7. `compute_pmi_masking_vocab` - takes the ngrams with the highest PMI scores
 and creates the PMI-masking vocabulary.
+
+## Performance and resource requirements
+*** TODO: structure the performance report so that it will inform potential users of how
+much resources they are expected to have.
+
+
