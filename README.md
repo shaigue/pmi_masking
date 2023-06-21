@@ -18,6 +18,22 @@ we use [DuckDB](https://duckdb.org/) in our implementation.
 - CD into the repo's directory
 
 #### Environment
+
+Note that you might need to update apt-get, install pip and venv before that (might need `sudo` permissions):
+```commandline
+apt-get update
+```
+```commandline
+apt install python3-pip
+```
+```commandline
+apt install python3-venv
+```
+
+Note that python3 version >= 3.9 is required, since 
+generic typing is used in the code, e.g., `tuple[int,...]`.
+
+
 Make sure you have the latest pip:
 ```commandline
 python3 -m pip install --upgrade pip
@@ -31,8 +47,9 @@ python3 -m venv env
 Activate the virtual environment:
 - Linux:
 ```commandline
-source env/Scripts/activate
+source env/bin/activate
 ```
+(`activate` script might be in a different directory, named `Scripts` instead of `bin`)
 - Windows:
 ```commandline
 .\env\Scripts\activate
