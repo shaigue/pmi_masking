@@ -106,7 +106,7 @@ def get_parser() -> ArgumentParser:
              'if value is too high, counts will not fit into memory and this will slow the program. '
              'low values will create a lot of context switches and will also slow down the program',
         type=positive_int,
-        default=1_000_000
+        default=100_000
     )
     parser.add_argument(
         '--min_count_batch_threshold',
