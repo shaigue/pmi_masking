@@ -128,7 +128,7 @@ def get_parser() -> ArgumentParser:
         '--tokenizer_batch_size',
         help='batch size for the tokenization step',
         type=positive_int,
-        default=1_000_000,
+        default=50_000,
     )
     parser.add_argument(
         '--n_samples',
