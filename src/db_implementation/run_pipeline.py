@@ -1,5 +1,8 @@
+import platform
 import shutil
 from typing import Optional
+
+import psutil
 
 from src.db_implementation.compute_log_likelihood import compute_log_likelihood
 from src.db_implementation.aggregate_ngram_counts import aggregate_ngram_counts
@@ -16,6 +19,13 @@ from src.db_implementation.utils import read_total_ngrams_per_size, get_db_path,
     get_vocab_file
 
 logger = get_module_logger(__name__)
+
+
+def log_system_info():
+    """Logs system information for creating performance report"""
+    logger.info(f'os: {platform.platform()}')
+    logger.info(f'processor: {platform.processor()}')
+    logger.info(f'RAM_size: {psutil.virtual_memory().total}')
 
 
 def run_pipeline(experiment_name: str, dataset_name: str, tokenizer_name: str,
@@ -44,7 +54,9 @@ def run_pipeline(experiment_name: str, dataset_name: str, tokenizer_name: str,
     :return: a list of the generated pmi masking vocabulary (ngrams are represented with token ids).
     """
     logger.info(f'start experiment: {experiment_name}')
-    logger.info(f'n_workers={n_workers}')
+    logger.info(f'n_workers: {n_workers}')
+    logger.info(f'dataset: {dataset_name}')
+    log_system_info()
 
     save_dir = get_save_dir(experiment_name)
     shutil.rmtree(save_dir, ignore_errors=True)

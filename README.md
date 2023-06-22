@@ -192,7 +192,16 @@ be used for computing the PMI scores.
 and creates the PMI-masking vocabulary.
 
 ## Performance and resource requirements
-*** TODO: structure the performance report so that it will inform potential users of how
-much resources they are expected to have.
+In this section we will present some performance results on different datasets
+and systems. Can use those numbers for a rough estimate how much resources it will take to your setting.
 
+|  Dataset   |                         CPU                         | #CPUs |   RAM   |            OS             |    Time    | Disk space |
+|:----------:|:---------------------------------------------------:|:-----:|:-------:|:-------------------------:|:----------:|:----------:|
+| bookcorpus | Intel64 Family 6 Model 142 Stepping 9, GenuineIntel |   4   | 7.88 GB | Windows-10-10.0.19045-SP0 | 6.73 hours |  5.13 GB   |  
+|            |                                                     |       |         |                           |            |            |
 
+### Datasets
+
+* [bookcorpus](https://huggingface.co/datasets/bookcorpus)
+* [RedPajama](https://huggingface.co/datasets/togethercomputer/RedPajama-Data-1T)
+* [wikipedia 20220301en](https://huggingface.co/datasets/wikipedia#20220301en)

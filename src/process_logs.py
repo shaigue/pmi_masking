@@ -1,12 +1,11 @@
 """Module that extracts required information from the logs"""
-# TODO: should I document this? it is for internal use...
+# TODO: document
 import datetime
 import re
 from collections.abc import Callable
 from typing import Any
 
-from src.utils import get_log_file
-
+from src.utils import get_log_file, space_str
 
 COMPUTE_STEPS = [
     'count_ngrams_in_batches',
@@ -20,6 +19,7 @@ COMPUTE_STEPS = [
 
 
 def parse_log_line(line: str) -> dict[str, str]:
+    """Parse a single log line into a dictionary of the different parts of the log message"""
     datetime_regex = r'\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}'
     module_name_regex = r'[\w.]+'
     level_regex = r'\w+'
@@ -33,6 +33,7 @@ def parse_log_line(line: str) -> dict[str, str]:
 
 
 def read_log() -> list[str]:
+    """Reads the log file and splits it into lines."""
     log_file = get_log_file()
     with log_file.open('r') as f:
         lines = f.read()
@@ -41,17 +42,22 @@ def read_log() -> list[str]:
 
 
 def read_and_parse_log() -> list[dict[str, str]]:
+    """Read and parses the log lines into their parts"""
     lines = read_log()
     lines = [parse_log_line(line) for line in lines]
     return lines
 
 
 def get_indices_that_satisfy_condition(lines: list, condition: Callable[[Any], bool]) -> list[int]:
+    """Returns a list of indices that satisfy a given condition"""
     return [i for i, line in enumerate(lines) if condition(line)]
 
 
 def slice_by_start_end_conditions(lines: list, start_condition: Callable[[Any], bool],
                                   end_condition: Callable[[Any], bool]) -> list[list]:
+    """Slices a list by start and end conditions.
+    Each slice is all the lines that appear between a start condition and the next end condition, inclusive.
+    """
     start_indices = get_indices_that_satisfy_condition(lines, start_condition)
     end_indices = get_indices_that_satisfy_condition(lines, end_condition)
     if len(start_indices) < len(end_indices):
@@ -74,23 +80,27 @@ def slice_by_start_end_conditions(lines: list, start_condition: Callable[[Any], 
 
 
 def get_regex_match_condition(regex: re.Pattern, field: str) -> Callable[[dict[str, str]], bool]:
+    """Returns a function that returns True, iff a parsed log line field matches a regex."""
     def regex_match_condition(parsed_line: dict[str, str]):
         return regex.match(parsed_line[field]) is not None
     return regex_match_condition
 
 
 def parse_matching_messages(parsed_lines: list[dict[str, str]], regex: re.Pattern) -> list[dict[str, str]]:
+    """Applies a regex to the message field of log lines, only to those that match the regex"""
     match_objects = [regex.match(parsed_line['message']) for parsed_line in parsed_lines]
     return [match_object.groupdict() for match_object in match_objects if match_object is not None]
 
 
 def get_parsed_line_datetime(parsed_line: dict[str, str]) -> datetime.datetime:
+    """Converts the string datetime in the parsed log line into a datetime object"""
     datetime_format = '%Y-%m-%d %H:%M:%S'
     time_str = parsed_line['datetime']
     return datetime.datetime.strptime(time_str, datetime_format)
 
 
 def get_parsed_lines_timediff_seconds(parsed_line1: dict[str, str], parsed_line2: dict[str, str]) -> int:
+    """Returns the time difference between two parsed log lines, in seconds."""
     datetime1 = get_parsed_line_datetime(parsed_line1)
     datetime2 = get_parsed_line_datetime(parsed_line2)
     delta = datetime2 - datetime1
@@ -98,6 +108,8 @@ def get_parsed_lines_timediff_seconds(parsed_line1: dict[str, str], parsed_line2
 
 
 def get_last_experiment_lines(lines: list[dict[str, str]], experiment_name: str) -> list[dict[str, str]]:
+    """Returns the log lines of an experiment with a given name. If the experiment was run multiple times, the last
+    time will be returned."""
     start_experiment_regex = re.compile(f'start experiment: {experiment_name}')
     start_experiment_condition = get_regex_match_condition(start_experiment_regex, 'message')
     end_experiment_regex = re.compile(f'end experiment: {experiment_name}')
@@ -114,6 +126,7 @@ def extract_total_time(experiment_lines: list[dict[str, str]]) -> float:
 
 
 def extract_compute_steps_times(experiment_lines: list[dict[str, str]]) -> dict[str, float]:
+    """Extracts the time each compute step took, in seconds."""
     compute_steps_times = {}
     for compute_step in COMPUTE_STEPS:
         module_name = f'src.db_implementation.{compute_step}'
@@ -136,7 +149,7 @@ def extract_compute_steps_times(experiment_lines: list[dict[str, str]]) -> dict[
     return compute_steps_times
 
 
-def extract_n_tokens(experiment_lines) -> int:
+def extract_n_tokens(experiment_lines: list[dict[str, str]]) -> int:
     n_tokens_regex = re.compile(r'n_tokens: (?P<n_tokens>\d+)')
     parsed_n_tokens_messages = parse_matching_messages(experiment_lines, n_tokens_regex)
     if len(parsed_n_tokens_messages) != 1:
@@ -145,7 +158,7 @@ def extract_n_tokens(experiment_lines) -> int:
 
 
 def extract_n_workers(experiment_lines: list[dict[str, str]]) -> int:
-    regex = re.compile(r'n_workers=(?P<n_workers>\d+)')
+    regex = re.compile(r'n_workers: (?P<n_workers>\d+)')
     parsed_messages = parse_matching_messages(experiment_lines, regex)
     if len(parsed_messages) != 1:
         raise RuntimeError
@@ -178,12 +191,48 @@ def extract_db_size_after_compute_pmi_score(experiment_lines: list[dict[str, str
     return int(parsed_lines[0]['db_size'])
 
 
+def extract_os(experiment_lines: list[dict[str, str]]) -> str:
+    regex = re.compile(r'os: (?P<os>.*)')
+    parsed_messages = parse_matching_messages(experiment_lines, regex)
+    if len(parsed_messages) != 1:
+        raise RuntimeError
+    return parsed_messages[0]['os']
+
+
+def extract_ram(experiment_lines: list[dict[str, str]]) -> str:
+    regex = re.compile(r'RAM_size: (?P<RAM_size>\d+)')
+    parsed_messages = parse_matching_messages(experiment_lines, regex)
+    if len(parsed_messages) != 1:
+        raise RuntimeError
+    return space_str(int(parsed_messages[0]['RAM_size']))
+
+
+def extract_processor(experiment_lines: list[dict[str, str]]) -> str:
+    regex = re.compile(r'processor: (?P<processor>.*)')
+    parsed_messages = parse_matching_messages(experiment_lines, regex)
+    if len(parsed_messages) != 1:
+        raise RuntimeError
+    return parsed_messages[0]['processor']
+
+
+def extract_dataset_name(experiment_lines: list[dict[str, str]]) -> str:
+    regex = re.compile(r'dataset: (?P<dataset_name>.*)')
+    parsed_messages = parse_matching_messages(experiment_lines, regex)
+    if len(parsed_messages) != 1:
+        raise RuntimeError
+    return parsed_messages[0]['dataset_name']
+
+
 def extract_experiment_information_from_logs(experiment_name: str) -> dict:
     experiment_info = {}
     lines = read_and_parse_log()
     experiment_lines = get_last_experiment_lines(lines, experiment_name)
 
+    experiment_info['OS'] = extract_os(experiment_lines)
+    experiment_info['RAM_size'] = extract_ram(experiment_lines)
+    experiment_info['processor'] = extract_processor(experiment_lines)
     experiment_info['total_time'] = extract_total_time(experiment_lines)
+    experiment_info['dataset_name'] = extract_dataset_name(experiment_lines)
     experiment_info['compute_steps_times'] = extract_compute_steps_times(experiment_lines)
     experiment_info['n_tokens'] = extract_n_tokens(experiment_lines)
     experiment_info['n_workers'] = extract_n_workers(experiment_lines)
@@ -202,7 +251,7 @@ def extract_experiment_information_from_logs(experiment_name: str) -> dict:
 
 
 if __name__ == '__main__':
-    res = extract_experiment_information_from_logs('end_to_end_test')
+    # res = extract_experiment_information_from_logs('end_to_end_test')
     # res = extract_experiment_information_from_logs('medium_size_bookcorpus')
-    # res = extract_experiment_information_from_logs('bookcorpus')
+    res = extract_experiment_information_from_logs('bookcorpus')
     print(res)

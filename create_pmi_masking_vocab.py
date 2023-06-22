@@ -106,7 +106,7 @@ def get_parser() -> ArgumentParser:
              'if value is too high, counts will not fit into memory and this will slow the program. '
              'low values will create a lot of context switches and will also slow down the program',
         type=positive_int,
-        default=100_000
+        default=250_000
     )
     parser.add_argument(
         '--min_count_batch_threshold',
@@ -128,7 +128,7 @@ def get_parser() -> ArgumentParser:
         '--tokenizer_batch_size',
         help='batch size for the tokenization step',
         type=positive_int,
-        default=50_000,
+        default=100_000,
     )
     parser.add_argument(
         '--n_samples',
@@ -168,11 +168,18 @@ def transform_ngram_size_to_vocab_percent_to_dict(args: Namespace) -> Namespace:
     return args
 
 
+def limit_n_workers(args: Namespace) -> Namespace:
+    """Limit the number of workers to the number of available CPUs"""
+    args.n_workers = min(get_available_cpus_count(), args.n_workers)
+    return args
+
+
 def main():
     parser = get_parser()
     args = parser.parse_args()
     validate_arguments(parser, args)
     args = transform_ngram_size_to_vocab_percent_to_dict(args)
+    args = limit_n_workers(args)
     logger.info(f'running pipeline with arguments: {args}')
     run_pipeline(**args.__dict__)
 

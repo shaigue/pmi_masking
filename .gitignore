@@ -4,7 +4,8 @@
 *.duckdb.wal
 *.json
 data/
-logs/
+log_freeze/
+pmi_masking_vocabs/
 
 # pycharm
 .idea/
