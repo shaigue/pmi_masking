@@ -195,11 +195,9 @@ and creates the PMI-masking vocabulary.
 In this section we will present some performance results on different datasets
 and systems. Can use those numbers for a rough estimate how much resources it will take to your setting.
 
-|  Dataset   |                         CPU                         | #CPUs |   RAM   |            OS             |    Time    | Disk space |
-|:----------:|:---------------------------------------------------:|:-----:|:-------:|:-------------------------:|:----------:|:----------:|
-| bookcorpus | Intel64 Family 6 Model 142 Stepping 9, GenuineIntel |   4   | 7.88 GB | Windows-10-10.0.19045-SP0 | 6.73 hours |  5.13 GB   |  
-|            |                                                     |       |         |                           |            |            |
-
+|   Dataset    |                          CPU                          | #CPUs |    RAM    |             OS              |     Time     |  Disk space  |
+|:------------:|:-----------------------------------------------------:|:-----:|:---------:|:---------------------------:|:------------:|:------------:|
+|  bookcorpus  |  Intel64 Family 6 Model 142 Stepping 9, GenuineIntel  |   4   |  7.88 GB  |  Windows-10-10.0.19045-SP0  |  6.73 hours  |   5.13 GB    |
 ### Datasets
 
 * [bookcorpus](https://huggingface.co/datasets/bookcorpus)
