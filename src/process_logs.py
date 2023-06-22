@@ -5,7 +5,7 @@ import re
 from collections.abc import Callable
 from typing import Any
 
-from src.utils import get_log_file, space_str
+from src.utils import get_log_file, space_str, time_str
 
 COMPUTE_STEPS = [
     'count_ngrams_in_batches',
@@ -199,12 +199,12 @@ def extract_os(experiment_lines: list[dict[str, str]]) -> str:
     return parsed_messages[0]['os']
 
 
-def extract_ram(experiment_lines: list[dict[str, str]]) -> str:
+def extract_ram(experiment_lines: list[dict[str, str]]) -> int:
     regex = re.compile(r'RAM_size: (?P<RAM_size>\d+)')
     parsed_messages = parse_matching_messages(experiment_lines, regex)
     if len(parsed_messages) != 1:
         raise RuntimeError
-    return space_str(int(parsed_messages[0]['RAM_size']))
+    return int(parsed_messages[0]['RAM_size'])
 
 
 def extract_processor(experiment_lines: list[dict[str, str]]) -> str:
@@ -250,8 +250,22 @@ def extract_experiment_information_from_logs(experiment_name: str) -> dict:
     return experiment_info
 
 
+def print_performance_result_line(experiment_info: dict):
+    row = [
+        experiment_info['dataset_name'],
+        experiment_info['processor'],
+        str(experiment_info['n_workers']),
+        space_str(experiment_info['RAM_size']),
+        experiment_info['OS'],
+        time_str(experiment_info['total_time']),
+        space_str(experiment_info['total_space'])
+    ]
+    row = '| ' + ' | '.join(row) + ' |'
+    print(row)
+
+
 if __name__ == '__main__':
     # res = extract_experiment_information_from_logs('end_to_end_test')
-    # res = extract_experiment_information_from_logs('medium_size_bookcorpus')
-    res = extract_experiment_information_from_logs('bookcorpus')
-    print(res)
+    res = extract_experiment_information_from_logs('bookcorpus_medium')
+    # res = extract_experiment_information_from_logs('bookcorpus')
+    print_performance_result_line(res)
