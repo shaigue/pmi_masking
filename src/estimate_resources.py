@@ -3,7 +3,7 @@ from math import log2
 from pprint import pprint
 
 from src import n_tokens
-from src.process_logs import extract_experiment_information_from_logs
+from src.generate_performance_report_from_logs import extract_experiment_information_from_logs
 from src.utils import time_str, space_str
 # TODO: should I document this? it is for internal use...
 

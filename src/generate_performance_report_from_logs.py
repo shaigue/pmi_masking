@@ -2,7 +2,9 @@
 # TODO: document
 import datetime
 import re
+from argparse import ArgumentParser
 from collections.abc import Callable
+from pprint import pprint
 from typing import Any
 
 from src.utils import get_log_file, space_str, time_str
@@ -29,7 +31,7 @@ def parse_log_line(line: str) -> dict[str, str]:
                      f'(?P<level>{level_regex}) - ' \
                      f'(?P<message>{message_regex})'
     log_line_regex = re.compile(log_line_regex)
-    return log_line_regex.match(line).groupdict()
+    return log_line_regex.fullmatch(line).groupdict()
 
 
 def read_log() -> list[str]:
@@ -82,13 +84,13 @@ def slice_by_start_end_conditions(lines: list, start_condition: Callable[[Any], 
 def get_regex_match_condition(regex: re.Pattern, field: str) -> Callable[[dict[str, str]], bool]:
     """Returns a function that returns True, iff a parsed log line field matches a regex."""
     def regex_match_condition(parsed_line: dict[str, str]):
-        return regex.match(parsed_line[field]) is not None
+        return regex.fullmatch(parsed_line[field]) is not None
     return regex_match_condition
 
 
 def parse_matching_messages(parsed_lines: list[dict[str, str]], regex: re.Pattern) -> list[dict[str, str]]:
     """Applies a regex to the message field of log lines, only to those that match the regex"""
-    match_objects = [regex.match(parsed_line['message']) for parsed_line in parsed_lines]
+    match_objects = [regex.fullmatch(parsed_line['message']) for parsed_line in parsed_lines]
     return [match_object.groupdict() for match_object in match_objects if match_object is not None]
 
 
@@ -250,22 +252,38 @@ def extract_experiment_information_from_logs(experiment_name: str) -> dict:
     return experiment_info
 
 
-def print_performance_result_line(experiment_info: dict):
-    row = [
-        experiment_info['dataset_name'],
-        experiment_info['processor'],
-        str(experiment_info['n_workers']),
-        space_str(experiment_info['RAM_size']),
-        experiment_info['OS'],
-        time_str(experiment_info['total_time']),
-        space_str(experiment_info['total_space'])
-    ]
-    row = '| ' + ' | '.join(row) + ' |'
-    print(row)
+def generate_performance_report_from_logs(experiment_name: str) -> None:
+    """Generates and prints a performance report for a given experiment name.
+    Assumes that the experiment was run and the logs were recorded in the repo's log file.
+    """
+    # dataset, #tokens, processor, #processors, memory, system, total time, disk space
+    experiment_info = extract_experiment_information_from_logs(experiment_name)
+    performance_report_dict = {
+        'dataset': experiment_info['dataset_name'],
+        '#tokens': f'{experiment_info["n_tokens"]:,}',
+        'processor': experiment_info['processor'],
+        '#processors': str(experiment_info['n_workers']),
+        'memory': space_str(experiment_info['RAM_size']),
+        'system': experiment_info['OS'],
+        'total time': time_str(experiment_info['total_time']),
+        'disk space': space_str(experiment_info['total_space']),
+    }
+    readme_table_row = f'| {" | ".join(performance_report_dict.values())} |'
+
+    print('performance report dict:')
+    pprint(performance_report_dict)
+    print()
+    print('README table row:')
+    print(readme_table_row)
 
 
 if __name__ == '__main__':
-    # res = extract_experiment_information_from_logs('end_to_end_test')
-    res = extract_experiment_information_from_logs('bookcorpus_medium')
-    # res = extract_experiment_information_from_logs('bookcorpus')
-    print_performance_result_line(res)
+    parser = ArgumentParser()
+    parser.add_argument(
+        '--experiment_name',
+        required=True,
+        type=str,
+        help='generates the performance report for the last experiment with that name'
+    )
+    args = parser.parse_args()
+    generate_performance_report_from_logs(args.experiment_name)
