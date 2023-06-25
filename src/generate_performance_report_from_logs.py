@@ -1,5 +1,4 @@
 """Module that extracts required information from the logs"""
-# TODO: document
 import datetime
 import re
 from argparse import ArgumentParser
@@ -256,7 +255,6 @@ def generate_performance_report_from_logs(experiment_name: str) -> None:
     """Generates and prints a performance report for a given experiment name.
     Assumes that the experiment was run and the logs were recorded in the repo's log file.
     """
-    # dataset, #tokens, processor, #processors, memory, system, total time, disk space
     experiment_info = extract_experiment_information_from_logs(experiment_name)
     performance_report_dict = {
         'dataset': experiment_info['dataset_name'],
