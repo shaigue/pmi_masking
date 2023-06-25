@@ -13,13 +13,13 @@ we use [DuckDB](https://duckdb.org/) in our implementation.
 ### Setup
 #### Clone the repo
 - Enter the directory where you want to clone the repository to
-- Create GitHub SSH keys to enable cloning the repo (https://docs.github.com/en/authentication/connecting-to-github-with-ssh/generating-a-new-ssh-key-and-adding-it-to-the-ssh-agent?platform=linux)
-- Clone the repo with SSH
+- Clone the repo
 - CD into the repo's directory
 
 #### Environment
 
 Note that you might need to update apt-get, install pip and venv before that (might need `sudo` permissions):
+Make sure to use python version >= 3.9.
 ```commandline
 apt-get update
 ```
@@ -30,16 +30,12 @@ apt install python3-pip
 apt install python3-venv
 ```
 
-Note that python3 version >= 3.9 is required, since 
-generic typing is used in the code, e.g., `tuple[int,...]`.
-
-
-Make sure you have the latest pip:
+Make sure that pip is up-to-date:
 ```commandline
 python3 -m pip install --upgrade pip
 ```
 
-Create a new environment:
+Create a new virtual environment:
 ```commandline
 python3 -m venv env
 ```
@@ -50,6 +46,7 @@ Activate the virtual environment:
 source env/bin/activate
 ```
 (`activate` script might be in a different directory, named `Scripts` instead of `bin`)
+
 - Windows:
 ```commandline
 .\env\Scripts\activate
@@ -67,7 +64,7 @@ python3 -m ipykernel install --user --name pmi_masking --display-name "Python (p
 ```
 
 #### Run tests
-To verify sure that the setup is successful, run tests: 
+To verify sure that the setup is successful, run tests (all tests should pass): 
 ```commandline
 python3 -m unittest discover -s tests 
 ```
@@ -192,8 +189,8 @@ be used for computing the PMI scores.
 and creates the PMI-masking vocabulary.
 
 ## Performance and resource requirements
-In this section we will present some performance results on different datasets
-and systems. Can use those numbers for a rough estimate how much resources it will take to your setting.
+In this section we present performance results on different datasets and systems. 
+You cna use those numbers for a rough estimate how much resources it will take for your setting.
 
 |  dataset   | #tokens |                      processor                       | #processors | memory  |          system           | total time | disk space |
 |:----------:|:-------:|:----------------------------------------------------:|:-----------:|:-------:|:-------------------------:|:----------:|:----------:|
