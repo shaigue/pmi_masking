@@ -1,5 +1,5 @@
 transformers
-datasets
+datasets[apache-beam]  # This required python version 3.9
 # for getting memory stats
 psutil
 # for working with larger than memory data

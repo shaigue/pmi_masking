@@ -10,6 +10,11 @@ we use [DuckDB](https://duckdb.org/) in our implementation.
 
 ## Instructions
 
+This project requires Python version 3.9. 
+Older versions produce errors because syntax that was introduced only in version 3.9 is used (specific type hints),
+and newer versions are incompatible with `apache-beam` package used for loading the 
+wikipedia dataset https://github.com/huggingface/datasets/issues/5613.
+
 ### Setup
 #### Clone the repo
 - Enter the directory where you want to clone the repository to
@@ -19,7 +24,6 @@ we use [DuckDB](https://duckdb.org/) in our implementation.
 #### Environment
 
 Note that you might need to update apt-get, install pip and venv before that (might need `sudo` permissions):
-Make sure to use python version >= 3.9.
 ```commandline
 apt-get update
 ```
