@@ -196,9 +196,10 @@ and creates the PMI-masking vocabulary.
 In this section we present performance results on different datasets and systems. 
 You cna use those numbers for a rough estimate how much resources it will take for your setting.
 
-|  dataset   | #tokens |                      processor                       | #processors | memory  |          system           | total time | disk space |
-|:----------:|:-------:|:----------------------------------------------------:|:-----------:|:-------:|:-------------------------:|:----------:|:----------:|
-| bookcorpus |  None   | Intel64 Family 6 Model 142 Stepping 9, GenuineIntel  |      4      | 7.88 GB | Windows-10-10.0.19045-SP0 | 6.73 hours |  5.13 GB   |
+|  dataset   |     #tokens     |                      processor                      | #processors |    memory    |                     system                      | total time | disk space |
+|:----------:|:---------------:|:---------------------------------------------------:|:-----------:|:------------:|:-----------------------------------------------:|:----------:|:----------:|
+| bookcorpus |      None       | Intel64 Family 6 Model 142 Stepping 9, GenuineIntel |      4      |   7.88 GB    |            Windows-10-10.0.19045-SP0            | 6.73 hours |  5.13 GB   |
+| bookcorpus | 1,098,720,840   |                       x86_64                        |    120      | 1007.59 GB   | Linux-5.4.0-148-generic-x86_64-with-glibc2.31   | 4.45 hours |  3.98 GB   |
 
 ### Datasets
 
