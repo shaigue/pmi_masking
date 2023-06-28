@@ -1,3 +1,4 @@
+import shutil
 from pathlib import Path
 
 import duckdb
@@ -46,7 +47,16 @@ def get_merge_and_add_counts_query(ngram_size: int, table_to_insert: str) -> str
     return insert_query
 
 
-def aggregate_ngram_counts(save_dir: Path, db_connection: duckdb.DuckDBPyConnection, max_ngram_size: int) -> None:
+def get_token_field_declaration_str(token_i: int) -> str:
+    token_field_name = get_token_field_name(token_i)
+    return f'{token_field_name} {get_field_sql_type(token_field_name)}'
+
+
+def get_count_field_declaration_str() -> str:
+    return f'{fields.COUNT} {get_field_sql_type(fields.COUNT)}'
+
+
+def aggregate_ngram_counts_v1(save_dir: Path, db_connection: duckdb.DuckDBPyConnection, max_ngram_size: int) -> None:
     """Collects all the batch counts from `save_dir` and aggregates them to a single database.
     each ngram size gets a separate table.
 
@@ -55,6 +65,8 @@ def aggregate_ngram_counts(save_dir: Path, db_connection: duckdb.DuckDBPyConnect
         counts of ngrams of size 4.
     :param db_connection: a read / write connection to a duckdb database.
     :param max_ngram_size: the maximum size of ngram to consider.
+
+    Note - this is an older version, that appeared to be slow.
     """
     logger.info('start')
     for ngram_size in range(1, max_ngram_size + 1):
@@ -84,10 +96,37 @@ def aggregate_ngram_counts(save_dir: Path, db_connection: duckdb.DuckDBPyConnect
     logger.info('end')
 
 
-def get_token_field_declaration_str(token_i: int) -> str:
-    token_field_name = get_token_field_name(token_i)
-    return f'{token_field_name} {get_field_sql_type(token_field_name)}'
+def aggregate_ngram_counts(save_dir: Path, db_connection: duckdb.DuckDBPyConnection, max_ngram_size: int) -> None:
+    """Collects all the batch counts from `save_dir` and aggregates them to a single database.
+    each ngram size gets a separate table.
 
+    :param save_dir: the directory where the ngram counts where saved. expects this
+        directory to have a subdirectory for every ngram size, e.g., subdirectory '4' for
+        counts of ngrams of size 4.
+    :param db_connection: a read / write connection to a duckdb database.
+    :param max_ngram_size: the maximum size of ngram to consider.
 
-def get_count_field_declaration_str() -> str:
-    return f'{fields.COUNT} {get_field_sql_type(fields.COUNT)}'
+    Note: this is a newer version that should work better with large number of CPU's
+    """
+    logger.info('start')
+    for ngram_size in range(1, max_ngram_size + 1):
+        logger.info(f'start ngram_size: {ngram_size}')
+
+        ngram_size_dir = save_dir / str(ngram_size)
+        ngram_size_parquet_files_glob = str(ngram_size_dir / '*.parquet')
+        duplicate_counts_table = db_connection.from_parquet(ngram_size_parquet_files_glob)
+        key_str = get_token_fields_str(ngram_size)
+        sum_ngram_counts_query = f'SELECT {key_str}, SUM({fields.COUNT}) AS {fields.COUNT} ' \
+                                 f'FROM duplicate_counts_table ' \
+                                 f'GROUP BY {key_str}'
+
+        table_name = get_ngram_table_name(ngram_size)
+        create_table_query = f'CREATE TABLE {table_name} AS {sum_ngram_counts_query}'
+        db_connection.execute(create_table_query)
+
+        shutil.rmtree(ngram_size_dir)
+
+        table_size = len(db_connection.sql(f'SELECT * FROM {table_name}'))
+        logger.info(f'end ngram_size: {ngram_size}, table size {table_size}')
+
+    logger.info('end')
