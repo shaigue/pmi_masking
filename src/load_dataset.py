@@ -4,11 +4,6 @@ from transformers import PreTrainedTokenizerBase
 
 from src.load_tokenizer import load_tokenizer
 
-__all__ = [
-    'load_and_tokenize_dataset',
-    'get_supported_dataset_names'
-]
-
 
 def load_bookcorpus_dataset() -> Dataset:
     dataset_name = 'bookcorpus'
@@ -65,7 +60,7 @@ def tokenize_dataset(dataset: Dataset, tokenizer: PreTrainedTokenizerBase, token
 
 
 def load_and_tokenize_dataset(dataset_name: str, tokenizer_name: str, tokenizer_batch_size: int,
-                              n_samples: int = None) -> Dataset:
+                              n_samples: int = None) -> tuple[Dataset, PreTrainedTokenizerBase]:
     """Loads a dataset and tokenizes it.
 
     :param dataset_name: experiment_name of dataset to load.
@@ -84,7 +79,7 @@ def load_and_tokenize_dataset(dataset_name: str, tokenizer_name: str, tokenizer_
     if n_samples is not None:
         dataset = dataset.select(range(n_samples))
 
-    tokenizer = load_tokenizer(tokenizer_name)
+    tokenizer = load_tokenizer(tokenizer_name, dataset=dataset, tokenizer_batch_size=tokenizer_batch_size)
     dataset = tokenize_dataset(dataset, tokenizer, tokenizer_batch_size)
 
-    return dataset
+    return dataset, tokenizer

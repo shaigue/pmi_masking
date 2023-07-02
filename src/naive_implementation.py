@@ -202,8 +202,8 @@ def run_pipeline_naive(experiment_name: str, dataset_name: str, tokenizer_name: 
     To understand what each parameter does, refer to the function "db_implementation.run_pipeline.run_pipeline"
     :return: a dictionary containing the intermediate results of the pipeline, for testing the db based implementation.
     """
-    dataset = load_and_tokenize_dataset(dataset_name=dataset_name, tokenizer_name=tokenizer_name,
-                                        tokenizer_batch_size=tokenizer_batch_size, n_samples=n_samples)
+    dataset, tokenizer = load_and_tokenize_dataset(dataset_name=dataset_name, tokenizer_name=tokenizer_name,
+                                                   tokenizer_batch_size=tokenizer_batch_size, n_samples=n_samples)
     tokenized_samples = dataset['input_ids']
     total_ngrams_per_size = count_total_ngrams_per_size(tokenized_samples, max_ngram_size)
     ngram_to_count = count_ngrams(tokenized_samples, max_ngram_size)
