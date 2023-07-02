@@ -1,4 +1,5 @@
 transformers
+tokenizers
 datasets[apache-beam]  # This required python version 3.9
 # for getting memory stats
 psutil
@@ -9,3 +10,4 @@ duckdb
 # might not need those next ones for deployment
 # matplotlib
 # jupyter
+

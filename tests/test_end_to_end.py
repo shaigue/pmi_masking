@@ -49,11 +49,41 @@ class MyTestCase(unittest.TestCase):
         db_result = self.read_column_as_dict(db_connection, column, max_ngram_size, skip_unigrams)
         self.assertDictAlmostEqual(naive_result[column], db_result)
 
-    def test_end_to_end(self):
+    def test_end_to_end_bert_pretrained_tokenizer(self):
         config = {
             'experiment_name': self.experiment_name,
             'dataset_name': 'bookcorpus',
             'tokenizer_name': 'bert-base-uncased',
+            'max_ngram_size': 5,
+            'min_count_threshold': 5,
+            'vocab_size': 1_000,
+            'ngram_size_to_vocab_percent': {2: 50, 3: 25, 4: 12.5, 5: 12.5},
+            'ngram_count_batch_size': 1_000,
+            'min_count_batch_threshold': 1,
+            'n_workers': 1,
+            'tokenizer_batch_size': 4_000,
+            'n_samples': 10_000,
+        }
+        pmi_masking_vocab_db = run_pipeline(**config, clean_up=False)
+        naive_result = run_pipeline_naive(**config)
+
+        total_ngrams_per_size_db = read_total_ngrams_per_size(self.save_dir)
+        self.assertDictEqual(naive_result['total_ngrams_per_size'], total_ngrams_per_size_db)
+
+        db_connection = open_db_connection(self.save_dir)
+        self.assertColumnEqual(naive_result, db_connection, fields.COUNT)
+        self.assertColumnEqual(naive_result, db_connection, fields.LOG_LIKELIHOOD)
+        self.assertColumnEqual(naive_result, db_connection, fields.MAX_SEGMENTATION_LOG_LIKELIHOOD_SUM)
+        self.assertColumnEqual(naive_result, db_connection, fields.PMI_SCORE)
+        db_connection.close()
+
+        self.assertEqual(set(naive_result['pmi_masking_vocab']), set(pmi_masking_vocab_db))
+
+    def test_end_to_end_word_level_tokenizer(self):
+        config = {
+            'experiment_name': self.experiment_name,
+            'dataset_name': 'bookcorpus',
+            'tokenizer_name': 'word-level',
             'max_ngram_size': 5,
             'min_count_threshold': 5,
             'vocab_size': 1_000,

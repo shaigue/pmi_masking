@@ -83,7 +83,7 @@ arguments and how to run it:
 usage: create_pmi_masking_vocab.py [-h] --experiment_name EXPERIMENT_NAME
                                    --dataset_name
                                    {bookcorpus,wikipedia,bookcorpus+wikipedia}
-                                   [--tokenizer_name {bert-base-uncased}]
+                                   [--tokenizer_name {bert-base-uncased,word-level}]
                                    [--max_ngram_size MAX_NGRAM_SIZE]
                                    [--min_count_threshold MIN_COUNT_THRESHOLD]
                                    [--vocab_size VOCAB_SIZE]
@@ -110,14 +110,14 @@ the new tokenizer name as the key to the dictionary returned by the function
 `get_tokenizer_name_to_load_function()` in that file. Support is automatically
 added to this script.
 
-options:
+optional arguments:
   -h, --help            show this help message and exit
   --experiment_name EXPERIMENT_NAME
                         experiment experiment_name. affects logging and
                         resulting file names
   --dataset_name {bookcorpus,wikipedia,bookcorpus+wikipedia}
                         determines which dataset to use
-  --tokenizer_name {bert-base-uncased}
+  --tokenizer_name {bert-base-uncased,word-level}
                         which tokenizer to use
   --max_ngram_size MAX_NGRAM_SIZE
                         maximum ngram size to consider
