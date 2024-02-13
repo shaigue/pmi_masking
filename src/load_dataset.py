@@ -17,6 +17,11 @@ def load_wikipedia_dataset() -> Dataset:
     split = 'train'
     return load_dataset(dataset_path, configuration_name, split=split)
 
+def load_c4_dataset() -> Dataset:
+    dataset_path = 'c4'
+    configuration_name = 'en'
+    split = 'train'
+    return load_dataset(dataset_path, configuration_name, split=split, streaming=True)
 
 def load_bookcorpus_and_wikipedia_dataset():
     # TODO: this should be tested on a large enough machine that has enough disk space
@@ -33,6 +38,7 @@ def get_dataset_name_to_load_function() -> dict:
         'bookcorpus': load_bookcorpus_dataset,
         'wikipedia': load_wikipedia_dataset,
         'bookcorpus+wikipedia': load_bookcorpus_and_wikipedia_dataset,
+        'c4': load_c4_dataset,
     }
 
 
